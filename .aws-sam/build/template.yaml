@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A simple API Gateway + Lambda example with Python
+Resources:
+  HelloFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: hello.app.lambda_handler
+      Runtime: python3.11
+      CodeUri: HelloFunction
+      Events:
+        HelloApi:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: GET
+    Metadata:
+      SamResourceId: HelloFunction
