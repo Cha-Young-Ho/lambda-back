@@ -37,6 +37,7 @@ jobs:
     - name: Deploy SAM application
       run: |
         sam deploy --stack-name base-api-server \
-          --s3-bucket ${{ secrets.S3_BUCKET }} \
-          --no-confirm-changeset \
-          --no-fail-on-empty-changeset
+        --s3-bucket ${{ secrets.S3_BUCKET }} \
+        --no-confirm-changeset \
+        --no-fail-on-empty-changeset \
+        --capabilities CAPABILITY_IAM
