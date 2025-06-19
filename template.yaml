@@ -22,6 +22,33 @@ Resources:
           Properties:
             Path: /hello
             Method: GET
+  
+  # 새로운 Users 함수
+  UsersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: users.app.lambda_handler
+      Runtime: python3.11
+      CodeUri: .
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent10Minutes
+        Alarms:
+          - !Ref UsersAliasErrorAlarm
+          - !Ref UsersLatestVersionErrorAlarm
+      Events:
+        # 단일 사용자 조회 API
+        GetUserApi:
+          Type: Api
+          Properties:
+            Path: /users/{userId}
+            Method: GET
+        # 전체 사용자 목록 API
+        ListUsersApi:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: GET
 
   # 경보 설정 - 오류 발생 시 롤백하기 위함
   AliasErrorMetricGreaterThanZeroAlarm:
@@ -59,13 +86,58 @@ Resources:
       Period: 60
       Statistic: Sum
       Threshold: 0
+      
+  # Users 함수 알람
+  UsersAliasErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Users Function Error > 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Resource
+          Value: !Sub "${UsersFunction}:live"
+        - Name: FunctionName
+          Value: !Ref UsersFunction
+      EvaluationPeriods: 2
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: 0
+
+  UsersLatestVersionErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Users Function Latest Version Error > 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Resource
+          Value: !Sub "${UsersFunction}:live"
+        - Name: FunctionName
+          Value: !Ref UsersFunction
+        - Name: ExecutedVersion
+          Value: !GetAtt UsersFunction.Version.Version
+      EvaluationPeriods: 2
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: 0
 
 Outputs:
   HelloFunction:
     Description: "Hello Lambda Function ARN"
     Value: !GetAtt HelloFunction.Arn
   
+  UsersFunction:
+    Description: "Users Lambda Function ARN"
+    Value: !GetAtt UsersFunction.Arn
+  
   HelloApi:
-    Description: "API Gateway endpoint URL for Prod stage"
+    Description: "API Gateway endpoint URL for Hello function"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  
+  UsersApi:
+    Description: "API Gateway endpoint URL for Users function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/users/"
 
