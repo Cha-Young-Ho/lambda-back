@@ -9,10 +9,63 @@ Resources:
       Handler: hello.app.lambda_handler
       Runtime: python3.11
       CodeUri: .
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent10Minutes
+        Alarms:
+          # 실패 시 롤백을 위한 CloudWatch 알람
+          - !Ref AliasErrorMetricGreaterThanZeroAlarm
+          - !Ref LatestVersionErrorMetricGreaterThanZeroAlarm
       Events:
         HelloApi:
           Type: Api
           Properties:
             Path: /hello
             Method: GET
+
+  # 경보 설정 - 오류 발생 시 롤백하기 위함
+  AliasErrorMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda Function Error > 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Resource
+          Value: !Sub "${HelloFunction}:live"
+        - Name: FunctionName
+          Value: !Ref HelloFunction
+      EvaluationPeriods: 2
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: 0
+
+  LatestVersionErrorMetricGreaterThanZeroAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Lambda Function Error > 0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: Resource
+          Value: !Sub "${HelloFunction}:live"
+        - Name: FunctionName
+          Value: !Ref HelloFunction
+        - Name: ExecutedVersion
+          Value: !GetAtt HelloFunction.Version.Version
+      EvaluationPeriods: 2
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: 0
+
+Outputs:
+  HelloFunction:
+    Description: "Hello Lambda Function ARN"
+    Value: !GetAtt HelloFunction.Arn
+  
+  HelloApi:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
 
