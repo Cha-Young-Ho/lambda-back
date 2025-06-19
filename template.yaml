@@ -22,9 +22,15 @@ Resources:
   HelloFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: hello.app.lambda_handler
+      Handler: app.lambda_handler
       Runtime: python3.11
-      CodeUri: .
+      CodeUri: ./hello
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent10Minutes
+        Alarms:
+          - !Ref AliasErrorMetricGreaterThanZeroAlarm
+          - !Ref LatestVersionErrorMetricGreaterThanZeroAlarm
       Events:
         HelloApi:
           Type: Api
@@ -36,9 +42,9 @@ Resources:
   UsersFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: users.app.lambda_handler
+      Handler: app.lambda_handler
       Runtime: python3.11
-      CodeUri: .
+      CodeUri: ./users
       AutoPublishAlias: live
       DeploymentPreference:
         Type: Canary10Percent10Minutes
