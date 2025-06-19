@@ -17,8 +17,21 @@ Globals:
   Function:
     Tags:
       Environment: !Ref Stage
+  Api:
+    # API Gateway 스테이지 이름을 Stage 파라미터로 설정
+    EndpointConfiguration: REGIONAL
+    StageName: !Ref Stage
 
 Resources:
+  # API Gateway 명시적 정의
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      EndpointConfiguration: REGIONAL
+      Tags:
+        Environment: !Ref Stage
+
   HelloFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -35,6 +48,7 @@ Resources:
         HelloApi:
           Type: Api
           Properties:
+            RestApiId: !Ref ApiGateway
             Path: /hello
             Method: GET
   
@@ -56,12 +70,14 @@ Resources:
         GetUserApi:
           Type: Api
           Properties:
+            RestApiId: !Ref ApiGateway
             Path: /users/{userId}
             Method: GET
         # 전체 사용자 목록 API
         ListUsersApi:
           Type: Api
           Properties:
+            RestApiId: !Ref ApiGateway
             Path: /users
             Method: GET
 
@@ -150,9 +166,9 @@ Outputs:
   
   HelloApi:
     Description: "API Gateway endpoint URL for Hello function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/hello/"
   
   UsersApi:
     Description: "API Gateway endpoint URL for Users function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/users/"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/users/"
 
