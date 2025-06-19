@@ -51,7 +51,7 @@ def lambda_handler(event, context):
         # 모든 사용자 목록 반환
         if detail == "basic":
             # 기본 정보만 포함된 목록
-            users_list = [{"id": u["id"], "name": u["name"]} for u in users_db.values()]
+            users_list = [{"id": u["id"], "names": u["name"]} for u in users_db.values()]
         else:
             # 전체 정보가 포함된 목록
             users_list = list(users_db.values())

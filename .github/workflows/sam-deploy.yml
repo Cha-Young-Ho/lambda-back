@@ -2,7 +2,7 @@ name: Deploy SAM Application
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
 
 permissions:
   id-token: write   # OIDC에 필요한 권한
@@ -34,10 +34,27 @@ jobs:
     - name: Build SAM application
       run: sam build
     
+    # 브랜치에 따라 다른 환경 변수 설정
+    - name: Set environment variables based on branch
+      run: |
+        if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+          echo "STACK_NAME=prod-api-server" >> $GITHUB_ENV
+          echo "STAGE_NAME=prod" >> $GITHUB_ENV
+          echo "Deploying to PRODUCTION environment"
+        elif [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
+          echo "STACK_NAME=dev-api-server" >> $GITHUB_ENV
+          echo "STAGE_NAME=dev" >> $GITHUB_ENV
+          echo "Deploying to DEVELOPMENT environment"
+        fi
+
     - name: Deploy SAM application
       run: |
-        sam deploy --stack-name base-api-server \
-        --s3-bucket ${{ secrets.S3_BUCKET }} \
-        --no-confirm-changeset \
-        --no-fail-on-empty-changeset \
-        --capabilities CAPABILITY_IAM
+        # 각 브랜치에 해당하는 스택에만 배포
+        if [[ $GITHUB_REF == 'refs/heads/main' || $GITHUB_REF == 'refs/heads/dev' ]]; then
+          sam deploy --stack-name ${{ env.STACK_NAME }} \
+          --s3-bucket ${{ secrets.S3_BUCKET }} \
+          --no-confirm-changeset \
+          --no-fail-on-empty-changeset \
+          --capabilities CAPABILITY_IAM \
+          --parameter-overrides Stage=${{ env.STAGE_NAME }}
+        fi

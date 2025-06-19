@@ -2,6 +2,22 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: A simple API Gateway + Lambda example with Python
 
+# 파라미터 정의
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    Description: The deployment stage (dev, prod)
+    AllowedValues:
+      - dev
+      - prod
+
+# 글로벌 변수
+Globals:
+  Function:
+    Tags:
+      Environment: !Ref Stage
+
 Resources:
   HelloFunction:
     Type: AWS::Serverless::Function
@@ -9,13 +25,6 @@ Resources:
       Handler: hello.app.lambda_handler
       Runtime: python3.11
       CodeUri: .
-      AutoPublishAlias: live
-      DeploymentPreference:
-        Type: Canary10Percent10Minutes
-        Alarms:
-          # 실패 시 롤백을 위한 CloudWatch 알람
-          - !Ref AliasErrorMetricGreaterThanZeroAlarm
-          - !Ref LatestVersionErrorMetricGreaterThanZeroAlarm
       Events:
         HelloApi:
           Type: Api
