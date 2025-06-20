@@ -17,7 +17,7 @@ def lambda_handler(event, context):
     # 샘플 사용자 데이터 (실제 구현에서는 데이터베이스 조회)
     users_db = {
         "1": {"id": "1", "name": "John Doe123", "email": "john@example.com", "created_at": "2023-01-01"},
-        "2": {"id": "2", "name": "Jane Smith", "email": "jane@example.com", "created_at": "2023-02-15"},
+        "2": {"id": "2", "name": "Jane Smith123", "email": "jane@example.com", "created_at": "2023-02-15"},
         "3": {"id": "3", "name": "Bob Johnson", "email": "bob@example.com", "created_at": "2023-03-20"}
     }
     
