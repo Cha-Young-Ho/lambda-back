@@ -5,56 +5,55 @@ on:
     branches: [ main, dev ]
 
 permissions:
-  id-token: write   # OIDC에 필요한 권한
-  contents: read    # 코드 체크아웃에 필요한 권한
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
-    
+    - name: Checkout source code
+      uses: actions/checkout@v3
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install aws-sam-cli
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
         aws-region: ${{ secrets.AWS_REGION }}
-    
-    - name: Build SAM application
-      run: sam build
-    
-    # 브랜치에 따라 다른 환경 변수 설정
+
     - name: Set environment variables based on branch
       run: |
         if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-          echo "STACK_NAME=api-server" >> $GITHUB_ENV
+          echo "STACK_NAME=api-server-prod" >> $GITHUB_ENV
           echo "STAGE_NAME=prod" >> $GITHUB_ENV
           echo "Deploying to PRODUCTION stage"
         elif [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
-          echo "STACK_NAME=api-server" >> $GITHUB_ENV
+          echo "STACK_NAME=api-server-dev" >> $GITHUB_ENV
           echo "STAGE_NAME=dev" >> $GITHUB_ENV
           echo "Deploying to DEVELOPMENT stage"
         fi
 
+    - name: Build SAM application
+      run: sam build
+
     - name: Deploy SAM application
       run: |
-        # 단일 API에 여러 스테이지로 배포
-        if [[ $GITHUB_REF == 'refs/heads/main' || $GITHUB_REF == 'refs/heads/dev' ]]; then
-          sam deploy --stack-name ${{ env.STACK_NAME }} \
+        sam deploy \
+          --stack-name ${{ env.STACK_NAME }} \
           --s3-bucket ${{ secrets.S3_BUCKET }} \
           --no-confirm-changeset \
           --no-fail-on-empty-changeset \
           --capabilities CAPABILITY_IAM \
           --parameter-overrides Stage=${{ env.STAGE_NAME }}
-        fi

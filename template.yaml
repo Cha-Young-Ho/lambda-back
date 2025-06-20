@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: A simple API Gateway + Lambda example with Python (Multi-stage: dev/prod)
+Description: A simple API Gateway + Lambda example with Python
 
 Parameters:
   Stage:
@@ -78,9 +78,11 @@ Resources:
   AliasErrorMetricGreaterThanZeroAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: HelloFunction Error > 0
+      AlarmDescription: Lambda Function Error > 0
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
+        - Name: Resource
+          Value: !Sub "${HelloFunction}:live"
         - Name: FunctionName
           Value: !Sub "HelloFunction-${Stage}"
       EvaluationPeriods: 2
@@ -93,11 +95,15 @@ Resources:
   LatestVersionErrorMetricGreaterThanZeroAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: HelloFunction latest version Error > 0
+      AlarmDescription: Lambda Function Error > 0
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
+        - Name: Resource
+          Value: !Sub "${HelloFunction}:live"
         - Name: FunctionName
           Value: !Sub "HelloFunction-${Stage}"
+        - Name: ExecutedVersion
+          Value: !GetAtt HelloFunction.Version.Version
       EvaluationPeriods: 2
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -108,9 +114,11 @@ Resources:
   UsersAliasErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: UsersFunction Error > 0
+      AlarmDescription: Users Function Error > 0
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
+        - Name: Resource
+          Value: !Sub "${UsersFunction}:live"
         - Name: FunctionName
           Value: !Sub "UsersFunction-${Stage}"
       EvaluationPeriods: 2
@@ -123,11 +131,15 @@ Resources:
   UsersLatestVersionErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: UsersFunction latest version Error > 0
+      AlarmDescription: Users Function Latest Version Error > 0
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
+        - Name: Resource
+          Value: !Sub "${UsersFunction}:live"
         - Name: FunctionName
           Value: !Sub "UsersFunction-${Stage}"
+        - Name: ExecutedVersion
+          Value: !GetAtt UsersFunction.Version.Version
       EvaluationPeriods: 2
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -145,11 +157,11 @@ Outputs:
     Value: !GetAtt UsersFunction.Arn
 
   HelloApi:
-    Description: "Hello API Gateway URL"
+    Description: "API Gateway endpoint URL for Hello function"
     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/hello/"
 
   UsersApi:
-    Description: "Users API Gateway URL"
+    Description: "API Gateway endpoint URL for Users function"
     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/users/"
 
   ApiGatewayURL:
