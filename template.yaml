@@ -17,10 +17,6 @@ Globals:
   Function:
     Tags:
       Environment: !Ref Stage
-  Api:
-    # API Gateway 스테이지 이름을 Stage 파라미터로 설정
-    EndpointConfiguration: REGIONAL
-    StageName: !Ref Stage
 
 Resources:
   # API Gateway 명시적 정의
@@ -166,9 +162,13 @@ Outputs:
   
   HelloApi:
     Description: "API Gateway endpoint URL for Hello function"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/hello/"
+    Value: !Sub "https://${ApiGateway.RestApiId}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/hello/"
   
   UsersApi:
     Description: "API Gateway endpoint URL for Users function"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/users/"
+    Value: !Sub "https://${ApiGateway.RestApiId}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/users/"
+  
+  ApiGatewayURL:
+    Description: "Base URL for API Gateway"
+    Value: !Sub "https://${ApiGateway.RestApiId}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"
 
