@@ -24,7 +24,9 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref Stage
-      EndpointConfiguration: REGIONAL
+      EndpointConfiguration:
+        Type: REGIONAL
+      OpenApiVersion: '2.0'
       Tags:
         Environment: !Ref Stage
 

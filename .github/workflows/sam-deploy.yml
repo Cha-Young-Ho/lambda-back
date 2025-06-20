@@ -38,20 +38,20 @@ jobs:
     - name: Set environment variables based on branch
       run: |
         if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-          echo "STACK_NAME=prod-api-server" >> $GITHUB_ENV
+          echo "STACK_NAME=api-server" >> $GITHUB_ENV
           echo "STAGE_NAME=prod" >> $GITHUB_ENV
-          echo "Deploying to PRODUCTION environment"
+          echo "Deploying to PRODUCTION stage"
         elif [[ $GITHUB_REF == 'refs/heads/dev' ]]; then
-          echo "STACK_NAME=dev-api-server" >> $GITHUB_ENV
+          echo "STACK_NAME=api-server" >> $GITHUB_ENV
           echo "STAGE_NAME=dev" >> $GITHUB_ENV
-          echo "Deploying to DEVELOPMENT environment"
+          echo "Deploying to DEVELOPMENT stage"
         fi
 
     - name: Deploy SAM application
       run: |
         # 단일 API에 여러 스테이지로 배포
         if [[ $GITHUB_REF == 'refs/heads/main' || $GITHUB_REF == 'refs/heads/dev' ]]; then
-          sam deploy --stack-name api-server \
+          sam deploy --stack-name ${{ env.STACK_NAME }} \
           --s3-bucket ${{ secrets.S3_BUCKET }} \
           --no-confirm-changeset \
           --no-fail-on-empty-changeset \
