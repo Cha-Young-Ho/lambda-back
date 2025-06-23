@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: A simple API Gateway + Lambda example with Python
+Description: Blog Management System with Admin Authentication and Board CRUD
 
 Parameters:
   Stage:
@@ -15,8 +15,115 @@ Globals:
   Function:
     Tags:
       Environment: !Ref Stage
+    Environment:
+      Variables:
+        STAGE: !Ref Stage
 
 Resources:
+  # S3 버킷 (이미지 업로드용)
+  BlogImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "blog-images-${Stage}-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+            AllowedOrigins: ['*']
+            MaxAge: 3000
+
+  # DynamoDB 테이블 (게시판 데이터용)
+  BlogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "blog-${Stage}-table"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref Stage
+  # 공통 Lambda Layer 정의
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub "blog-common-layer-${Stage}"
+      Description: "Common utilities for DynamoDB, S3, and configuration management"
+      ContentUri: ./layers/common-layer
+      CompatibleRuntimes:
+        - python3.11
+      RetentionPolicy: Delete
+
+  # Lambda 함수들에 공통 적용될 정책
+  LambdaExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "BlogLambdaExecutionPolicy-${Stage}"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/${Stage}/config-*"
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource:
+              - !GetAtt BlogTable.Arn
+              - !Sub "${BlogTable.Arn}/index/*"
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:PutObjectAcl
+            Resource:
+              - !Sub "${BlogImagesBucket}/*"
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource:
+              - !Ref BlogImagesBucket
+
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
@@ -24,146 +131,145 @@ Resources:
       EndpointConfiguration:
         Type: REGIONAL
       OpenApiVersion: '2.0'
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
       Tags:
         Environment: !Ref Stage
 
-  HelloFunction:
+  # 관리자 로그인 함수
+  AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "HelloFunction-${Stage}"
+      FunctionName: !Sub "BlogAuth-${Stage}"
       Handler: app.lambda_handler
       Runtime: python3.11
-      CodeUri: ./hello
-      AutoPublishAlias: live
-      DeploymentPreference:
-        Type: Canary10Percent10Minutes
-        Alarms:
-          - !Ref AliasErrorMetricGreaterThanZeroAlarm
-          - !Ref LatestVersionErrorMetricGreaterThanZeroAlarm
+      CodeUri: ./auth
+      Layers:
+        - !Ref CommonLayer
+      Policies:
+        - !Ref LambdaExecutionPolicy
       Events:
-        HelloApi:
+        LoginApi:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /hello
-            Method: GET
+            Path: /auth/login
+            Method: POST
+        AuthOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/login
+            Method: OPTIONS
 
-  UsersFunction:
+  # 게시판 CRUD 함수
+  BoardFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "UsersFunction-${Stage}"
+      FunctionName: !Sub "BlogBoard-${Stage}"
       Handler: app.lambda_handler
       Runtime: python3.11
-      CodeUri: ./users
-      AutoPublishAlias: live
-      DeploymentPreference:
-        Type: Canary10Percent10Minutes
-        Alarms:
-          - !Ref UsersAliasErrorAlarm
-          - !Ref UsersLatestVersionErrorAlarm
+      CodeUri: ./board
+      Layers:
+        - !Ref CommonLayer
+      Policies:
+        - !Ref LambdaExecutionPolicy
       Events:
-        GetUserApi:
+        # 게시글 목록 조회 (공개)
+        ListBoardApi:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /users/{userId}
+            Path: /board
             Method: GET
-        ListUsersApi:
+        # 게시글 상세 조회 (공개)
+        GetBoardApi:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /users
+            Path: /board/{boardId}
             Method: GET
-
-  AliasErrorMetricGreaterThanZeroAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: Lambda Function Error > 0
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: Resource
-          Value: !Sub "${HelloFunction}:live"
-        - Name: FunctionName
-          Value: !Sub "HelloFunction-${Stage}"
-      EvaluationPeriods: 2
-      MetricName: Errors
-      Namespace: AWS/Lambda
-      Period: 60
-      Statistic: Sum
-      Threshold: 0
-
-  LatestVersionErrorMetricGreaterThanZeroAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: Lambda Function Error > 0
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: Resource
-          Value: !Sub "${HelloFunction}:live"
-        - Name: FunctionName
-          Value: !Sub "HelloFunction-${Stage}"
-        - Name: ExecutedVersion
-          Value: !GetAtt HelloFunction.Version.Version
-      EvaluationPeriods: 2
-      MetricName: Errors
-      Namespace: AWS/Lambda
-      Period: 60
-      Statistic: Sum
-      Threshold: 0
-
-  UsersAliasErrorAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: Users Function Error > 0
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: Resource
-          Value: !Sub "${UsersFunction}:live"
-        - Name: FunctionName
-          Value: !Sub "UsersFunction-${Stage}"
-      EvaluationPeriods: 2
-      MetricName: Errors
-      Namespace: AWS/Lambda
-      Period: 60
-      Statistic: Sum
-      Threshold: 0
-
-  UsersLatestVersionErrorAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: Users Function Latest Version Error > 0
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: Resource
-          Value: !Sub "${UsersFunction}:live"
-        - Name: FunctionName
-          Value: !Sub "UsersFunction-${Stage}"
-        - Name: ExecutedVersion
-          Value: !GetAtt UsersFunction.Version.Version
-      EvaluationPeriods: 2
-      MetricName: Errors
-      Namespace: AWS/Lambda
-      Period: 60
-      Statistic: Sum
-      Threshold: 0
+        # 게시글 생성 (관리자 전용)
+        CreateBoardApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /board
+            Method: POST
+        # 게시글 수정 (관리자 전용)
+        UpdateBoardApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /board/{boardId}
+            Method: PUT
+        # 게시글 삭제 (관리자 전용)
+        DeleteBoardApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /board/{boardId}
+            Method: DELETE
+        # 이미지 업로드 (관리자 전용)
+        UploadImageApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /board/upload
+            Method: POST
+        # CORS 옵션
+        BoardOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /board
+            Method: OPTIONS
+        BoardItemOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /board/{boardId}
+            Method: OPTIONS
+        UploadOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /board/upload
+            Method: OPTIONS
 
 Outputs:
-  HelloFunction:
-    Description: "Hello Lambda Function ARN"
-    Value: !GetAtt HelloFunction.Arn
+  BlogTable:
+    Description: "DynamoDB table for blog posts"
+    Value: !Ref BlogTable
+    Export:
+      Name: !Sub "${AWS::StackName}-BlogTable"
 
-  UsersFunction:
-    Description: "Users Lambda Function ARN"
-    Value: !GetAtt UsersFunction.Arn
+  BlogImagesBucket:
+    Description: "S3 bucket for blog images"
+    Value: !Ref BlogImagesBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BlogImagesBucket"
 
-  HelloApi:
-    Description: "API Gateway endpoint URL for Hello function"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/hello/"
+  AuthFunction:
+    Description: "Auth Lambda Function ARN"
+    Value: !GetAtt AuthFunction.Arn
 
-  UsersApi:
-    Description: "API Gateway endpoint URL for Users function"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/users/"
+  BoardFunction:
+    Description: "Board Lambda Function ARN"
+    Value: !GetAtt BoardFunction.Arn
 
   ApiGatewayURL:
-    Description: "Base URL for API Gateway"
+    Description: "API Gateway endpoint URL"
     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiEndpoint"
+
+  AuthApiEndpoint:
+    Description: "Auth API endpoint"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/auth/login"
+
+  BoardApiEndpoint:
+    Description: "Board API endpoint"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/board"

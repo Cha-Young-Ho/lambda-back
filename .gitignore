@@ -1,0 +1,81 @@
+# AWS SAM
+.aws-sam/
+samconfig.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local development files (민감한 정보 포함)
+local_env.py
+.env.local
+.env.development
+.env.production
+config.local.json
+secrets.json
+
+# DynamoDB Local
+shared-local-instance.db
+local-dynamodb/
+
+# AWS credentials (절대 커밋하지 마세요)
+.aws/
+credentials
+config
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+.aws-sam*
+.aws-sam
+.aws-sam/

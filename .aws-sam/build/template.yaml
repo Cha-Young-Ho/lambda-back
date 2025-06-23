@@ -1,18 +1,296 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: A simple API Gateway + Lambda example with Python
+Description: Blog Management System with Admin Authentication and Board CRUD
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    Description: The deployment stage (dev, prod)
+    AllowedValues:
+    - dev
+    - prod
+Globals:
+  Function:
+    Tags:
+      Environment:
+        Ref: Stage
+    Environment:
+      Variables:
+        STAGE:
+          Ref: Stage
 Resources:
-  HelloFunction:
+  BlogImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: blog-images-${Stage}-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+        - AllowedHeaders:
+          - '*'
+          AllowedMethods:
+          - GET
+          - PUT
+          - POST
+          - DELETE
+          - HEAD
+          AllowedOrigins:
+          - '*'
+          MaxAge: 3000
+  BlogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: blog-${Stage}-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      - AttributeName: sk
+        AttributeType: S
+      - AttributeName: gsi1pk
+        AttributeType: S
+      - AttributeName: gsi1sk
+        AttributeType: S
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      - AttributeName: sk
+        KeyType: RANGE
+      GlobalSecondaryIndexes:
+      - IndexName: GSI1
+        KeySchema:
+        - AttributeName: gsi1pk
+          KeyType: HASH
+        - AttributeName: gsi1sk
+          KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
+      Tags:
+      - Key: Environment
+        Value:
+          Ref: Stage
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName:
+        Fn::Sub: blog-common-layer-${Stage}
+      Description: Common utilities for DynamoDB, S3, and configuration management
+      ContentUri: ../../layers/common-layer
+      CompatibleRuntimes:
+      - python3.11
+      RetentionPolicy: Delete
+  LambdaExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName:
+        Fn::Sub: BlogLambdaExecutionPolicy-${Stage}
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Resource: '*'
+        - Effect: Allow
+          Action:
+          - secretsmanager:GetSecretValue
+          Resource:
+          - Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/${Stage}/config-*
+        - Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          - dynamodb:Query
+          - dynamodb:Scan
+          Resource:
+          - Fn::GetAtt:
+            - BlogTable
+            - Arn
+          - Fn::Sub: ${BlogTable.Arn}/index/*
+        - Effect: Allow
+          Action:
+          - s3:GetObject
+          - s3:PutObject
+          - s3:DeleteObject
+          - s3:PutObjectAcl
+          Resource:
+          - Fn::Sub: ${BlogImagesBucket}/*
+        - Effect: Allow
+          Action:
+          - s3:ListBucket
+          Resource:
+          - Ref: BlogImagesBucket
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName:
+        Ref: Stage
+      EndpointConfiguration:
+        Type: REGIONAL
+      OpenApiVersion: '2.0'
+      Cors:
+        AllowMethods: '''GET,POST,PUT,DELETE,OPTIONS'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+      Tags:
+        Environment:
+          Ref: Stage
+  AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: hello.app.lambda_handler
+      FunctionName:
+        Fn::Sub: BlogAuth-${Stage}
+      Handler: app.lambda_handler
       Runtime: python3.11
-      CodeUri: HelloFunction
+      CodeUri: AuthFunction
+      Layers:
+      - Ref: CommonLayer
+      Policies:
+      - Ref: LambdaExecutionPolicy
       Events:
-        HelloApi:
+        LoginApi:
           Type: Api
           Properties:
-            Path: /hello
-            Method: GET
+            RestApiId:
+              Ref: ApiGateway
+            Path: /auth/login
+            Method: POST
+        AuthOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /auth/login
+            Method: OPTIONS
     Metadata:
-      SamResourceId: HelloFunction
+      SamResourceId: AuthFunction
+  BoardFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: BlogBoard-${Stage}
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      CodeUri: BoardFunction
+      Layers:
+      - Ref: CommonLayer
+      Policies:
+      - Ref: LambdaExecutionPolicy
+      Events:
+        ListBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board
+            Method: GET
+        GetBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/{boardId}
+            Method: GET
+        CreateBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board
+            Method: POST
+        UpdateBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/{boardId}
+            Method: PUT
+        DeleteBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/{boardId}
+            Method: DELETE
+        UploadImageApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/upload
+            Method: POST
+        BoardOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board
+            Method: OPTIONS
+        BoardItemOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/{boardId}
+            Method: OPTIONS
+        UploadOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/upload
+            Method: OPTIONS
+    Metadata:
+      SamResourceId: BoardFunction
+Outputs:
+  BlogTable:
+    Description: DynamoDB table for blog posts
+    Value:
+      Ref: BlogTable
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-BlogTable
+  BlogImagesBucket:
+    Description: S3 bucket for blog images
+    Value:
+      Ref: BlogImagesBucket
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-BlogImagesBucket
+  AuthFunction:
+    Description: Auth Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - AuthFunction
+      - Arn
+  BoardFunction:
+    Description: Board Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - BoardFunction
+      - Arn
+  ApiGatewayURL:
+    Description: API Gateway endpoint URL
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-ApiEndpoint
+  AuthApiEndpoint:
+    Description: Auth API endpoint
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/auth/login
+  BoardApiEndpoint:
+    Description: Board API endpoint
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/board
