@@ -1,7 +1,0 @@
-# AWS SDK for Python
-boto3>=1.26.0
-botocore>=1.29.0
-
-# Optional: For local development with DynamoDB Local
-# dynamodb-local (pip install dynamodb-local)
-
