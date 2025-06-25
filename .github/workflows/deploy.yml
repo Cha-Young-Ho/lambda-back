@@ -50,12 +50,10 @@ jobs:
 
     - name: SAM Build
       run: |
-        cd backend
         sam build
 
     - name: SAM Deploy
       run: |
-        cd backend
         # Lambda 함수만 업데이트 (API Gateway 설정 유지)
         sam deploy \
           --stack-name ${{ env.STACK_NAME }} \
@@ -69,7 +67,6 @@ jobs:
     - name: Get Lambda Function Names
       id: lambda-names
       run: |
-        cd backend
         AUTH_FUNCTION_NAME=$(aws cloudformation describe-stacks \
           --stack-name ${{ env.STACK_NAME }} \
           --query 'Stacks[0].Outputs[?OutputKey==`AuthFunctionName`].OutputValue' \
