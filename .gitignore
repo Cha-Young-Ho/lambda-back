@@ -2,6 +2,14 @@
 .aws-sam/
 samconfig.toml
 
+# Local Development
+venv/
+.env
+*.log
+
+# Docker
+.docker/
+
 # Python
 __pycache__/
 *.py[cod]

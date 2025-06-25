@@ -3,32 +3,26 @@ Transform: AWS::Serverless-2016-10-31
 Description: Blog Management System - Lambda Functions with Alias
 
 Parameters:
-  Stage:
+  Version:
     Type: String
-    Default: dev
-    Description: The deployment stage (dev, prod)
-    AllowedValues:
-      - dev
-      - prod
+    Default: "1.0.0"
+    Description: The version number for this deployment
 
 Globals:
   Function:
     Runtime: python3.11
     Tags:
-      Environment: !Ref Stage
+      Version: !Ref Version
     Environment:
       Variables:
-        STAGE: !Ref Stage
-    AutoPublishAlias: !Ref Stage
-    DeploymentPreference:
-      Type: AllAtOnce
+        VERSION: !Ref Version
 
 Resources:
-  # API Gateway - 단일 API에 여러 Stage
+  # API Gateway - 기존 설정 유지
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: !Ref Stage
+      StageName: Prod  # 고정값 사용
       EndpointConfiguration:
         Type: REGIONAL
       OpenApiVersion: '2.0'
@@ -36,8 +30,6 @@ Resources:
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowOrigin: "'*'"
-      Tags:
-        Environment: !Ref Stage
 
   # 관리자 로그인 함수
   AuthFunction:
@@ -52,7 +44,7 @@ Resources:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/${Stage}/config-*"
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*"
       Events:
         LoginApi:
           Type: Api
@@ -76,14 +68,14 @@ Resources:
       CodeUri: ./board
       Environment:
         Variables:
-          TABLE_NAME: !Sub "blog-table-${Stage}"
+          TABLE_NAME: "blog-table"
       Policies:
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
                 - secretsmanager:GetSecretValue
-              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/${Stage}/config-*"
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*"
             - Effect: Allow
               Action:
                 - dynamodb:GetItem
@@ -92,7 +84,7 @@ Resources:
                 - dynamodb:DeleteItem
                 - dynamodb:Query
                 - dynamodb:Scan
-              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table-${Stage}"
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table"
       Events:
         # 게시글 목록 조회 (공개)
         ListBoardApi:
@@ -163,38 +155,29 @@ Resources:
             Method: GET
 
 Outputs:
-  AuthFunction:
-    Description: "Auth Lambda Function ARN"
-    Value: !GetAtt AuthFunction.Arn
+  # Lambda Function Names (for CI/CD)
+  AuthFunctionName:
+    Description: "Auth Lambda Function Name"
+    Value: !Ref AuthFunction
 
-  AuthFunctionAlias:
-    Description: "Auth Lambda Function Alias ARN"
-    Value: !Ref AuthFunction.Alias
+  BoardFunctionName:
+    Description: "Board Lambda Function Name"
+    Value: !Ref BoardFunction
 
-  BoardFunction:
-    Description: "Board Lambda Function ARN"
-    Value: !GetAtt BoardFunction.Arn
-
-  BoardFunctionAlias:
-    Description: "Board Lambda Function Alias ARN"
-    Value: !Ref BoardFunction.Alias
-
+  # API Gateway Information
   ApiGatewayId:
     Description: "API Gateway ID"
     Value: !Ref ApiGateway
-    Export:
-      Name: "BlogApiGatewayId"
 
   ApiGatewayURL:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"
-    Export:
-      Name: !Sub "BlogApiEndpoint-${Stage}"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
 
+  # API Endpoints
   AuthApiEndpoint:
     Description: "Auth API endpoint"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/auth/login"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth/login"
 
   BoardApiEndpoint:
     Description: "Board API endpoint"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/board"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/board"

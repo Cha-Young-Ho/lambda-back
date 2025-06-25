@@ -21,10 +21,8 @@ def create_simple_token(payload):
 def get_secret():
     """AWS Secrets Manager에서 설정 가져오기"""
     try:
-        # Stage별 Secret 이름 설정
-        stage = os.environ.get('STAGE', 'local')
-        
-        if stage == 'local':
+        # 로컬 환경 체크
+        if os.path.exists('env.json'):
             # 로컬 환경에서는 env.json 파일에서 읽기
             try:
                 with open('env.json', 'r') as f:
@@ -51,14 +49,14 @@ def get_secret():
         # AWS 환경에서는 Secrets Manager 사용
         import boto3
         client = boto3.client('secretsmanager')
-        secret_name = f"blog/{stage}/config"
+        secret_name = "blog/config"  # stage 구분 제거
         
         response = client.get_secret_value(SecretId=secret_name)
         secret = json.loads(response['SecretString'])
         return secret
         
     except Exception as e:
-        print(f"Error getting secret for stage {stage}: {str(e)}")
+        print(f"Error getting secret: {str(e)}")
         # Secret이 없는 경우 기본값 사용
         return {
             'admin': {

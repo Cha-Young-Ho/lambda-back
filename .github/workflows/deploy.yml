@@ -1,0 +1,128 @@
+name: Deploy Lambda Functions
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # v1.0.0, v1.2.3 등의 태그 푸시 시 트리거
+
+env:
+  AWS_REGION: ap-northeast-2  # 원하는 AWS 리전으로 변경
+  STACK_NAME: blog-system     # 단일 스택 이름
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Extract version from tag
+      id: version
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG_NAME#v}  # v1.0.0 -> 1.0.0
+        
+        echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+        echo "🏷️ Tag: $TAG_NAME"
+        echo "📦 Version: $VERSION"
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Setup SAM CLI
+      uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: SAM Build
+      run: |
+        cd backend
+        sam build
+
+    - name: SAM Deploy
+      run: |
+        cd backend
+        # Lambda 함수만 업데이트 (API Gateway 설정 유지)
+        sam deploy \
+          --stack-name ${{ env.STACK_NAME }} \
+          --parameter-overrides \
+            Version=${{ steps.version.outputs.version }} \
+          --capabilities CAPABILITY_IAM \
+          --no-confirm-changeset \
+          --no-fail-on-empty-changeset \
+          --resolve-s3
+
+    - name: Get Lambda Function Names
+      id: lambda-names
+      run: |
+        cd backend
+        AUTH_FUNCTION_NAME=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query 'Stacks[0].Outputs[?OutputKey==`AuthFunctionName`].OutputValue' \
+          --output text)
+        
+        BOARD_FUNCTION_NAME=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query 'Stacks[0].Outputs[?OutputKey==`BoardFunctionName`].OutputValue' \
+          --output text)
+        
+        echo "auth-function-name=$AUTH_FUNCTION_NAME" >> $GITHUB_OUTPUT
+        echo "board-function-name=$BOARD_FUNCTION_NAME" >> $GITHUB_OUTPUT
+        
+        echo "📋 Lambda Function Names:"
+        echo "   Auth: $AUTH_FUNCTION_NAME"
+        echo "   Board: $BOARD_FUNCTION_NAME"
+
+    - name: Create Lambda Versions
+      id: lambda-versions
+      run: |
+        # Auth Function 버전 생성
+        AUTH_VERSION=$(aws lambda publish-version \
+          --function-name ${{ steps.lambda-names.outputs.auth-function-name }} \
+          --description "Version ${{ steps.version.outputs.version }} deployed from tag ${{ steps.version.outputs.tag }}" \
+          --query 'Version' \
+          --output text)
+        
+        # Board Function 버전 생성  
+        BOARD_VERSION=$(aws lambda publish-version \
+          --function-name ${{ steps.lambda-names.outputs.board-function-name }} \
+          --description "Version ${{ steps.version.outputs.version }} deployed from tag ${{ steps.version.outputs.tag }}" \
+          --query 'Version' \
+          --output text)
+        
+        echo "auth-version=$AUTH_VERSION" >> $GITHUB_OUTPUT
+        echo "board-version=$BOARD_VERSION" >> $GITHUB_OUTPUT
+        
+        echo "🔢 Auth Function Version: $AUTH_VERSION"
+        echo "🔢 Board Function Version: $BOARD_VERSION"
+
+    - name: Output deployment info
+      run: |
+        echo "🎉 Lambda 함수 배포 완료!"
+        echo "📋 배포 정보:"
+        echo "   Tag: ${{ steps.version.outputs.tag }}"
+        echo "   Version: ${{ steps.version.outputs.version }}"
+        echo "   Auth Function: ${{ steps.lambda-names.outputs.auth-function-name }}"
+        echo "   Auth Version: ${{ steps.lambda-versions.outputs.auth-version }}"
+        echo "   Board Function: ${{ steps.lambda-names.outputs.board-function-name }}"
+        echo "   Board Version: ${{ steps.lambda-versions.outputs.board-version }}"
+        echo ""
+        echo "🔗 Lambda Function ARNs with Versions:"
+        echo "   Auth: ${{ steps.lambda-names.outputs.auth-function-name }}:${{ steps.lambda-versions.outputs.auth-version }}"
+        echo "   Board: ${{ steps.lambda-names.outputs.board-function-name }}:${{ steps.lambda-versions.outputs.board-version }}"
+        echo ""
+        echo "📖 다음 단계:"
+        echo "   AWS Console에서 API Gateway 설정을 수동으로 업데이트하세요"
+        echo "   Lambda 통합에서 위의 버전 번호를 사용하거나 $LATEST를 유지하세요"

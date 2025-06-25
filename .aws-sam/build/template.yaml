@@ -2,33 +2,25 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Blog Management System - Lambda Functions with Alias
 Parameters:
-  Stage:
+  Version:
     Type: String
-    Default: dev
-    Description: The deployment stage (dev, prod)
-    AllowedValues:
-    - dev
-    - prod
+    Default: 1.0.0
+    Description: The version number for this deployment
 Globals:
   Function:
     Runtime: python3.11
     Tags:
-      Environment:
-        Ref: Stage
+      Version:
+        Ref: Version
     Environment:
       Variables:
-        STAGE:
-          Ref: Stage
-    AutoPublishAlias:
-      Ref: Stage
-    DeploymentPreference:
-      Type: AllAtOnce
+        VERSION:
+          Ref: Version
 Resources:
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      StageName:
-        Ref: Stage
+      StageName: Prod
       EndpointConfiguration:
         Type: REGIONAL
       OpenApiVersion: '2.0'
@@ -36,9 +28,6 @@ Resources:
         AllowMethods: '''GET,POST,PUT,DELETE,OPTIONS'''
         AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
         AllowOrigin: '''*'''
-      Tags:
-        Environment:
-          Ref: Stage
   AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -52,7 +41,7 @@ Resources:
           Action:
           - secretsmanager:GetSecretValue
           Resource:
-            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/${Stage}/config-*
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*
       Events:
         LoginApi:
           Type: Api
@@ -78,8 +67,7 @@ Resources:
       CodeUri: BoardFunction
       Environment:
         Variables:
-          TABLE_NAME:
-            Fn::Sub: blog-table-${Stage}
+          TABLE_NAME: blog-table
       Policies:
       - Version: '2012-10-17'
         Statement:
@@ -87,7 +75,7 @@ Resources:
           Action:
           - secretsmanager:GetSecretValue
           Resource:
-            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/${Stage}/config-*
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*
         - Effect: Allow
           Action:
           - dynamodb:GetItem
@@ -97,7 +85,7 @@ Resources:
           - dynamodb:Query
           - dynamodb:Scan
           Resource:
-            Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table-${Stage}
+            Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table
       Events:
         ListBoardApi:
           Type: Api
@@ -162,47 +150,37 @@ Resources:
               Ref: ApiGateway
             Path: /board/upload
             Method: OPTIONS
+        BoardTestApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/test
+            Method: GET
     Metadata:
       SamResourceId: BoardFunction
 Outputs:
-  AuthFunction:
-    Description: Auth Lambda Function ARN
+  AuthFunctionName:
+    Description: Auth Lambda Function Name
     Value:
-      Fn::GetAtt:
-      - AuthFunction
-      - Arn
-  AuthFunctionAlias:
-    Description: Auth Lambda Function Alias ARN
+      Ref: AuthFunction
+  BoardFunctionName:
+    Description: Board Lambda Function Name
     Value:
-      Ref: AuthFunction.Alias
-  BoardFunction:
-    Description: Board Lambda Function ARN
-    Value:
-      Fn::GetAtt:
-      - BoardFunction
-      - Arn
-  BoardFunctionAlias:
-    Description: Board Lambda Function Alias ARN
-    Value:
-      Ref: BoardFunction.Alias
+      Ref: BoardFunction
   ApiGatewayId:
     Description: API Gateway ID
     Value:
       Ref: ApiGateway
-    Export:
-      Name: BlogApiGatewayId
   ApiGatewayURL:
     Description: API Gateway endpoint URL
     Value:
-      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/
-    Export:
-      Name:
-        Fn::Sub: BlogApiEndpoint-${Stage}
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/
   AuthApiEndpoint:
     Description: Auth API endpoint
     Value:
-      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/auth/login
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth/login
   BoardApiEndpoint:
     Description: Board API endpoint
     Value:
-      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/board
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/board
