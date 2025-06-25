@@ -1,18 +1,186 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: A simple API Gateway + Lambda example with Python
+Description: Blog Management System - Lambda Functions with Alias
+Parameters:
+  Version:
+    Type: String
+    Default: 1.0.0
+    Description: The version number for this deployment
+Globals:
+  Function:
+    Runtime: python3.11
+    Tags:
+      Version:
+        Ref: Version
+    Environment:
+      Variables:
+        VERSION:
+          Ref: Version
 Resources:
-  HelloFunction:
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      EndpointConfiguration:
+        Type: REGIONAL
+      OpenApiVersion: '2.0'
+      Cors:
+        AllowMethods: '''GET,POST,PUT,DELETE,OPTIONS'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
+  AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: hello.app.lambda_handler
-      Runtime: python3.11
-      CodeUri: HelloFunction
+      FunctionName: BlogAuth
+      Handler: app.lambda_handler
+      CodeUri: AuthFunction
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*
       Events:
-        HelloApi:
+        LoginApi:
           Type: Api
           Properties:
-            Path: /hello
+            RestApiId:
+              Ref: ApiGateway
+            Path: /auth/login
+            Method: POST
+        AuthOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /auth/login
+            Method: OPTIONS
+    Metadata:
+      SamResourceId: AuthFunction
+  BoardFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: BlogBoard
+      Handler: app.lambda_handler
+      CodeUri: BoardFunction
+      Environment:
+        Variables:
+          TABLE_NAME: blog-table
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*
+        - Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          - dynamodb:Query
+          - dynamodb:Scan
+          Resource:
+            Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table
+      Events:
+        ListBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board
+            Method: GET
+        GetBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/{boardId}
+            Method: GET
+        CreateBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board
+            Method: POST
+        UpdateBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/{boardId}
+            Method: PUT
+        DeleteBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/{boardId}
+            Method: DELETE
+        UploadImageApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/upload
+            Method: POST
+        BoardOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board
+            Method: OPTIONS
+        BoardItemOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/{boardId}
+            Method: OPTIONS
+        UploadOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/upload
+            Method: OPTIONS
+        BoardTestApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/test
             Method: GET
     Metadata:
-      SamResourceId: HelloFunction
+      SamResourceId: BoardFunction
+Outputs:
+  AuthFunctionName:
+    Description: Auth Lambda Function Name
+    Value:
+      Ref: AuthFunction
+  BoardFunctionName:
+    Description: Board Lambda Function Name
+    Value:
+      Ref: BoardFunction
+  ApiGatewayId:
+    Description: API Gateway ID
+    Value:
+      Ref: ApiGateway
+  ApiGatewayURL:
+    Description: API Gateway endpoint URL
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  AuthApiEndpoint:
+    Description: Auth API endpoint
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth/login
+  BoardApiEndpoint:
+    Description: Board API endpoint
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/board
