@@ -17,6 +17,15 @@ Globals:
         VERSION:
           Ref: Version
 Resources:
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: blog-common-layer
+      Description: Common utilities for blog Lambda functions
+      ContentUri: ../../layers/common-layer
+      CompatibleRuntimes:
+      - python3.11
+      RetentionPolicy: Retain
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
@@ -34,6 +43,10 @@ Resources:
       FunctionName: BlogAuth
       Handler: app.lambda_handler
       CodeUri: AuthFunction
+      Timeout: 30
+      MemorySize: 256
+      Layers:
+      - Ref: CommonLayer
       Policies:
       - Version: '2012-10-17'
         Statement:
@@ -57,6 +70,13 @@ Resources:
               Ref: ApiGateway
             Path: /auth/login
             Method: OPTIONS
+        AuthTestApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /auth/test
+            Method: GET
     Metadata:
       SamResourceId: AuthFunction
   BoardFunction:
@@ -65,6 +85,10 @@ Resources:
       FunctionName: BlogBoard
       Handler: app.lambda_handler
       CodeUri: BoardFunction
+      Timeout: 30
+      MemorySize: 256
+      Layers:
+      - Ref: CommonLayer
       Environment:
         Variables:
           TABLE_NAME: blog-table

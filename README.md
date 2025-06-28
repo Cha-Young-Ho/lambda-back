@@ -50,7 +50,10 @@ git push origin v1.0.0
 
 ### 🚀 빠른 시작 (최초 설정)
 ```bash
-# 전체 환경 자동 설정 및 실행
+# 1. 로컬 환경 설정 파일 생성
+cp env.json.sample env.json
+
+# 2. 전체 환경 자동 설정 및 실행
 cd local-setup
 make dev
 
@@ -59,6 +62,11 @@ make dev
 make build          # SAM 빌드  
 make run            # API 실행
 ```
+
+### ⚠️ 중요사항
+- **env.json**: 로컬 개발용으로만 사용 (Git에 포함되지 않음)
+- **AWS 배포**: Secrets Manager에서 설정을 가져옴
+- **환경 감지**: `AWS_LAMBDA_FUNCTION_NAME` 환경변수로 AWS/로컬 구분
 
 ### 📋 자주 사용하는 명령어
 ```bash

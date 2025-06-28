@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - dynamodb_data:/home/dynamodblocal/data
+      - /tmp/dynamodb_data:/home/dynamodblocal/data
     working_dir: /home/dynamodblocal
     command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
     networks:
@@ -20,7 +20,7 @@ services:
       - "8001:8001"
     environment:
       - DYNAMO_ENDPOINT=http://dynamodb-local:8000
-      - AWS_REGION=us-east-1
+      - AWS_REGION=ap-northeast-2
       - AWS_ACCESS_KEY_ID=dummy
       - AWS_SECRET_ACCESS_KEY=dummy
     depends_on:

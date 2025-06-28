@@ -17,7 +17,7 @@ def create_local_table():
         # 먼저 DynamoDB Local 시도 (Docker 등으로 실행 중인 경우)
         dynamodb = boto3.resource('dynamodb', 
                                 endpoint_url='http://localhost:8000',
-                                region_name='us-east-1',
+                                region_name='ap-northeast-2',
                                 aws_access_key_id='dummy',
                                 aws_secret_access_key='dummy')
         print("🔗 Connecting to DynamoDB Local (localhost:8000)...")
