@@ -118,6 +118,13 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /board
             Method: GET
+        # 최근 게시글 5개 조회 (공개)
+        RecentBoardApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /board/recent
+            Method: GET
         # 게시글 상세 조회 (공개)
         GetBoardApi:
           Type: Api

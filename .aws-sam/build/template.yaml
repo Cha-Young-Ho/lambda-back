@@ -118,6 +118,13 @@ Resources:
               Ref: ApiGateway
             Path: /board
             Method: GET
+        RecentBoardApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /board/recent
+            Method: GET
         GetBoardApi:
           Type: Api
           Properties:
