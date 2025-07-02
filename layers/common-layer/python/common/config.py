@@ -64,7 +64,7 @@ class AppConfig:
             if 'dynamodb' not in secret:
                 secret['dynamodb'] = {
                     'region': secret.get('dynamodb_region', 'ap-northeast-2'),
-                    'table_name': secret.get('table_name', 'blog-table-dev')
+                    'table_name': secret.get('table_name', 'blog-table')
                 }
             
             return secret
@@ -85,7 +85,7 @@ class AppConfig:
             },
             'dynamodb': {
                 'region': os.environ.get('AWS_REGION', 'ap-northeast-2'),
-                'table_name': os.environ.get('TABLE_NAME', 'blog-table-dev'),
+                'table_name': os.environ.get('TABLE_NAME', 'blog-table'),
                 'endpoint_url': 'http://host.docker.internal:8000'
             }
         }
@@ -105,5 +105,5 @@ class AppConfig:
         """DynamoDB 설정 반환"""
         return self.config.get('dynamodb', {
             'region': 'ap-northeast-2',
-            'table_name': 'blog-table-dev'
+            'table_name': 'blog-table'
         })

@@ -70,13 +70,6 @@ Resources:
               Ref: ApiGateway
             Path: /auth/login
             Method: OPTIONS
-        AuthTestApi:
-          Type: Api
-          Properties:
-            RestApiId:
-              Ref: ApiGateway
-            Path: /auth/test
-            Method: GET
     Metadata:
       SamResourceId: AuthFunction
   BoardFunction:
@@ -181,15 +174,174 @@ Resources:
               Ref: ApiGateway
             Path: /board/upload
             Method: OPTIONS
-        BoardTestApi:
+    Metadata:
+      SamResourceId: BoardFunction
+  NewsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: BlogNews
+      Handler: app.lambda_handler
+      CodeUri: NewsFunction
+      Timeout: 30
+      MemorySize: 256
+      Layers:
+      - Ref: CommonLayer
+      Environment:
+        Variables:
+          TABLE_NAME: blog-table
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*
+        - Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          - dynamodb:Query
+          - dynamodb:Scan
+          Resource:
+            Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table
+      Events:
+        ListNewsApi:
           Type: Api
           Properties:
             RestApiId:
               Ref: ApiGateway
-            Path: /board/test
+            Path: /news
             Method: GET
+        GetNewsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /news/{newsId}
+            Method: GET
+        CreateNewsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /news
+            Method: POST
+        UpdateNewsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /news/{newsId}
+            Method: PUT
+        DeleteNewsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /news/{newsId}
+            Method: DELETE
+        NewsOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /news
+            Method: OPTIONS
+        NewsItemOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /news/{newsId}
+            Method: OPTIONS
     Metadata:
-      SamResourceId: BoardFunction
+      SamResourceId: NewsFunction
+  GalleryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: BlogGallery
+      Handler: app.lambda_handler
+      CodeUri: GalleryFunction
+      Timeout: 30
+      MemorySize: 256
+      Layers:
+      - Ref: CommonLayer
+      Environment:
+        Variables:
+          TABLE_NAME: blog-table
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*
+        - Effect: Allow
+          Action:
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+          - dynamodb:Query
+          - dynamodb:Scan
+          Resource:
+            Fn::Sub: arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table
+      Events:
+        ListGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /gallery
+            Method: GET
+        GetGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /gallery/{galleryId}
+            Method: GET
+        CreateGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /gallery
+            Method: POST
+        UpdateGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /gallery/{galleryId}
+            Method: PUT
+        DeleteGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /gallery/{galleryId}
+            Method: DELETE
+        GalleryOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /gallery
+            Method: OPTIONS
+        GalleryItemOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /gallery/{galleryId}
+            Method: OPTIONS
+    Metadata:
+      SamResourceId: GalleryFunction
 Outputs:
   AuthFunctionName:
     Description: Auth Lambda Function Name
@@ -199,6 +351,14 @@ Outputs:
     Description: Board Lambda Function Name
     Value:
       Ref: BoardFunction
+  NewsFunctionName:
+    Description: News Lambda Function Name
+    Value:
+      Ref: NewsFunction
+  GalleryFunctionName:
+    Description: Gallery Lambda Function Name
+    Value:
+      Ref: GalleryFunction
   ApiGatewayId:
     Description: API Gateway ID
     Value:
@@ -215,3 +375,11 @@ Outputs:
     Description: Board API endpoint
     Value:
       Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/board
+  NewsApiEndpoint:
+    Description: News API endpoint
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/news
+  GalleryApiEndpoint:
+    Description: Gallery API endpoint
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/gallery

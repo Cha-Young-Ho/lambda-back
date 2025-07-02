@@ -61,7 +61,7 @@ except ImportError:
                 if 'dynamodb' not in secret:
                     secret['dynamodb'] = {
                         'region': secret.get('dynamodb_region', 'ap-northeast-2'),
-                        'table_name': secret.get('table_name', 'blog-table-dev')
+                        'table_name': secret.get('table_name', 'blog-table')
                     }
                 
                 return secret
@@ -78,7 +78,7 @@ except ImportError:
                 'jwt_secret': os.environ.get('JWT_SECRET', 'your-secret-key'),
                 'dynamodb': {
                     'region': os.environ.get('AWS_REGION', 'ap-northeast-2'),
-                    'table_name': os.environ.get('TABLE_NAME', 'blog-table-dev'),
+                    'table_name': os.environ.get('TABLE_NAME', 'blog-table'),
                     'endpoint_url': 'http://host.docker.internal:8000'
                 }
             }
@@ -116,7 +116,7 @@ except ImportError:
     def create_response(status_code, body, headers=None):
         """통합 Response 생성"""
         default_headers = {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -128,7 +128,7 @@ except ImportError:
         return {
             'statusCode': status_code,
             'headers': default_headers,
-            'body': json.dumps(body) if isinstance(body, (dict, list)) else body
+            'body': json.dumps(body, ensure_ascii=False) if isinstance(body, (dict, list)) else body
         }
     
     def create_error_response(status_code, error_message, error_details=None):
@@ -222,30 +222,6 @@ def lambda_handler(event, context):
         # 이미지 업로드 (관리자 전용)
         elif method == 'POST' and path == '/board/upload':
             return upload_image(event, app_config)
-        
-        elif method == 'GET' and path == '/board/test':
-            # 테스트용 엔드포인트 - 환경 정보 상세 표시
-            is_lambda = os.environ.get('AWS_LAMBDA_FUNCTION_NAME') is not None
-            is_local_sam = os.environ.get('AWS_SAM_LOCAL') is not None
-            
-            env_info = {
-                'message': 'Test endpoint reached',
-                'stage': stage,
-                'config': app_config.config,
-                'environment': {
-                    'is_lambda': is_lambda,
-                    'is_local_sam': is_local_sam,
-                    'aws_lambda_function_name': os.environ.get('AWS_LAMBDA_FUNCTION_NAME'),
-                    'aws_region': os.environ.get('AWS_REGION'),
-                    'stage': os.environ.get('STAGE', 'unknown'),
-                    'env_json_exists': os.path.exists('env.json'),
-                    'determined_env': 'lambda' if is_lambda else 'sam_local' if is_local_sam else 'local'
-                },
-                'event_dump': event,
-                'config' : app_config.config
-            }
-            
-            return create_response(200, env_info)
         
         else:
             return create_response(404, {'error': 'Not found'})
@@ -341,11 +317,13 @@ def get_board_list(app_config, event):
                 'id': item.get('id', ''),
                 'title': item.get('title', ''),
                 'content': item.get('content', '')[:100] + '...' if len(item.get('content', '')) > 100 else item.get('content', ''),
-                'category': item.get('category', '기관소식'),
+                'category': item.get('category', '센터소식'),
                 'author': item.get('author', ''),
                 'created_at': item.get('created_at', ''),
                 'view_count': int(item.get('view_count', 0)),
-                'status': item.get('status', 'published')
+                'status': item.get('status', 'published'),
+                'image_url': item.get('image_url', ''),
+                'short_description': item.get('short_description', item.get('content', '')[:100] + '...' if len(item.get('content', '')) > 100 else item.get('content', ''))
             }
             
             # 카테고리 필터링
@@ -422,11 +400,13 @@ def get_recent_board_list(app_config, event):
                 'id': item.get('id', ''),
                 'title': item.get('title', ''),
                 'content': item.get('content', '')[:100] + '...' if len(item.get('content', '')) > 100 else item.get('content', ''),
-                'category': item.get('category', '기관소식'),
+                'category': item.get('category', '센터소식'),
                 'author': item.get('author', ''),
                 'created_at': item.get('created_at', ''),
                 'view_count': int(item.get('view_count', 0)),
-                'status': item.get('status', 'published')
+                'status': item.get('status', 'published'),
+                'image_url': item.get('image_url', ''),
+                'short_description': item.get('short_description', item.get('content', '')[:100] + '...' if len(item.get('content', '')) > 100 else item.get('content', ''))
             }
             
             # 카테고리 필터링
@@ -471,53 +451,75 @@ def get_sample_board_list(category_filter=None):
     sample_data = [
         {
             'id': '1',
-            'title': 'Welcome to Blog',
-            'content': 'This is a sample blog post.',
-            'category': '기관소식',
-            'author': 'admin',
-            'created_at': '2024-06-24T10:00:00Z',
-            'view_count': 100,
-            'status': 'published'
+            'title': '2025년 가족센터 신규 프로그램 오픈',
+            'content': '가족의 건강한 소통과 화합을 위한 다양한 프로그램을 새롭게 선보입니다.',
+            'category': '센터소식',
+            'author': '센터 관리자',
+            'created_at': '2025-06-29T10:00:00Z',
+            'view_count': 324,
+            'status': 'published',
+            'image_url': 'https://example.com/images/family-program.jpg',
+            'short_description': '가족의 건강한 소통과 화합을 위한 다양한 프로그램을 새롭게 선보입니다.'
         },
         {
             'id': '2',
-            'title': 'Another Post',
-            'content': 'This is another sample post.',
-            'category': '디지털소식',
-            'author': 'admin',
-            'created_at': '2024-06-24T15:00:00Z',
-            'view_count': 50,
-            'status': 'published'
+            'title': '다문화가족 자녀 한국어 교육 프로그램 성과 발표',
+            'content': '지난 3개월간 진행된 한국어 교육 프로그램의 우수한 성과를 공유합니다.',
+            'category': '프로그램소식',
+            'author': '교육팀',
+            'created_at': '2025-06-28T15:00:00Z',
+            'view_count': 289,
+            'status': 'published',
+            'image_url': 'https://example.com/images/korean-education.jpg',
+            'short_description': '지난 3개월간 진행된 한국어 교육 프로그램의 우수한 성과를 공유합니다.'
         },
         {
             'id': '3',
-            'title': '가족센터 프로그램 안내',
-            'content': '새로운 프로그램을 안내드립니다.',
-            'category': '프로그램',
-            'author': 'admin',
-            'created_at': '2024-06-25T09:00:00Z',
-            'view_count': 75,
-            'status': 'published'
+            'title': '가족 소통 워크숍 "함께 걸어요" 개최',
+            'content': '가족 간의 깊이 있는 소통을 위한 특별 워크숍이 성황리에 마무리되었습니다.',
+            'category': '행사소식',
+            'author': '행사기획팀',
+            'created_at': '2025-06-27T09:00:00Z',
+            'view_count': 456,
+            'status': 'published',
+            'image_url': 'https://example.com/images/family-workshop.jpg',
+            'short_description': '가족 간의 깊이 있는 소통을 위한 특별 워크숍이 성황리에 마무리되었습니다.'
         },
         {
             'id': '4',
-            'title': '참고자료 업데이트',
-            'content': '새로운 참고자료가 업데이트되었습니다.',
-            'category': '참고자료',
-            'author': 'admin',
-            'created_at': '2024-06-25T14:00:00Z',
-            'view_count': 25,
-            'status': 'published'
+            'title': '다문화가족 지원 정책 정보 공유합니다',
+            'content': '정지원과 복지혜택에 대한 상세한 안내를 제공합니다.',
+            'category': '생활정보',
+            'author': '정지원',
+            'created_at': '2025-06-26T14:00:00Z',
+            'view_count': 234,
+            'status': 'published',
+            'image_url': 'https://example.com/images/policy-info.jpg',
+            'short_description': '정지원과 복지혜택에 대한 상세한 안내를 제공합니다.'
         },
         {
             'id': '5',
-            'title': '신규 채용 공고',
-            'content': '2024년 하반기 채용 공고를 안내드립니다.',
-            'category': '채용정보',
-            'author': 'admin',
-            'created_at': '2024-06-26T09:00:00Z',
-            'view_count': 120,
-            'status': 'published'
+            'title': '신혼부부 주거 지원 정책 안내',
+            'content': '최신혼과 주거 지원 정책에 대한 안내를 드립니다.',
+            'category': '생활정보',
+            'author': '최신혼',
+            'created_at': '2025-06-25T11:00:00Z',
+            'view_count': 98,
+            'status': 'published',
+            'image_url': 'https://example.com/images/housing-support.jpg',
+            'short_description': '최신혼과 주거 지원 정책에 대한 안내를 드립니다.'
+        },
+        {
+            'id': '6',
+            'title': '부부갈등 해결을 위한 상담 프로그램 추천',
+            'content': '정상담을 통해 건강한 가족관계를 만들어가는 프로그램을 소개합니다.',
+            'category': '교육',
+            'author': '정상담',
+            'created_at': '2025-06-24T16:00:00Z',
+            'view_count': 167,
+            'status': 'published',
+            'image_url': 'https://example.com/images/counseling-program.jpg',
+            'short_description': '정상담을 통해 건강한 가족관계를 만들어가는 프로그램을 소개합니다.'
         }
     ]
     
@@ -535,34 +537,64 @@ def get_sample_recent_board_list(category_filter=None):
     """최근 샘플 게시글 5개 (DynamoDB 연결 실패 시)"""
     sample_data = [
         {
-            'id': '5',
-            'title': '최신 행사 안내',
-            'content': '이번 주 진행되는 행사를 안내드립니다.',
-            'category': '행사',
-            'author': 'admin',
-            'created_at': '2024-06-26T14:00:00Z',
-            'view_count': 45,
-            'status': 'published'
+            'id': '1',
+            'title': '2025년 가족센터 신규 프로그램 오픈',
+            'content': '가족의 건강한 소통과 화합을 위한 다양한 프로그램을 새롭게 선보입니다.',
+            'category': '센터소식',
+            'author': '센터 관리자',
+            'created_at': '2025-06-29T10:00:00Z',
+            'view_count': 324,
+            'status': 'published',
+            'image_url': 'https://example.com/images/family-program.jpg',
+            'short_description': '가족의 건강한 소통과 화합을 위한 다양한 프로그램을 새롭게 선보입니다.'
         },
         {
-            'id': '4',
-            'title': '디지털 소식',
-            'content': '최신 디지털 기술 소식입니다.',
-            'category': '디지털소식',
-            'author': 'admin',
-            'created_at': '2024-06-26T10:00:00Z',
-            'view_count': 30,
-            'status': 'published'
+            'id': '2',
+            'title': '다문화가족 자녀 한국어 교육 프로그램 성과 발표',
+            'content': '지난 3개월간 진행된 한국어 교육 프로그램의 우수한 성과를 공유합니다.',
+            'category': '프로그램소식',
+            'author': '교육팀',
+            'created_at': '2025-06-28T15:00:00Z',
+            'view_count': 289,
+            'status': 'published',
+            'image_url': 'https://example.com/images/korean-education.jpg',
+            'short_description': '지난 3개월간 진행된 한국어 교육 프로그램의 우수한 성과를 공유합니다.'
         },
         {
             'id': '3',
-            'title': '가족센터 프로그램 안내',
-            'content': '새로운 프로그램을 안내드립니다.',
-            'category': '프로그램',
-            'author': 'admin',
-            'created_at': '2024-06-25T09:00:00Z',
-            'view_count': 75,
-            'status': 'published'
+            'title': '가족 소통 워크숍 "함께 걸어요" 개최',
+            'content': '가족 간의 깊이 있는 소통을 위한 특별 워크숍이 성황리에 마무리되었습니다.',
+            'category': '행사소식',
+            'author': '행사기획팀',
+            'created_at': '2025-06-27T09:00:00Z',
+            'view_count': 456,
+            'status': 'published',
+            'image_url': 'https://example.com/images/family-workshop.jpg',
+            'short_description': '가족 간의 깊이 있는 소통을 위한 특별 워크숍이 성황리에 마무리되었습니다.'
+        },
+        {
+            'id': '4',
+            'title': '다문화가족 지원 정책 정보 공유합니다',
+            'content': '정지원과 복지혜택에 대한 상세한 안내를 제공합니다.',
+            'category': '생활정보',
+            'author': '정지원',
+            'created_at': '2025-06-26T14:00:00Z',
+            'view_count': 234,
+            'status': 'published',
+            'image_url': 'https://example.com/images/policy-info.jpg',
+            'short_description': '정지원과 복지혜택에 대한 상세한 안내를 제공합니다.'
+        },
+        {
+            'id': '5',
+            'title': '신혼부부 주거 지원 정책 안내',
+            'content': '최신혼과 주거 지원 정책에 대한 안내를 드립니다.',
+            'category': '생활정보',
+            'author': '최신혼',
+            'created_at': '2025-06-25T11:00:00Z',
+            'view_count': 98,
+            'status': 'published',
+            'image_url': 'https://example.com/images/housing-support.jpg',
+            'short_description': '최신혼과 주거 지원 정책에 대한 안내를 드립니다.'
         }
     ]
     
@@ -628,11 +660,13 @@ def get_board_detail(board_id, app_config):
             'id': item.get('id', ''),
             'title': item.get('title', ''),
             'content': item.get('content', ''),
-            'category': item.get('category', '기관소식'),
+            'category': item.get('category', '센터소식'),
             'author': item.get('author', ''),
             'created_at': item.get('created_at', ''),
             'view_count': int(item.get('view_count', 0)) + 1,  # 증가된 조회수
-            'status': item.get('status', 'published')
+            'status': item.get('status', 'published'),
+            'image_url': item.get('image_url', ''),
+            'short_description': item.get('short_description', '')
         }
         
         return create_response(200, post)
@@ -663,25 +697,43 @@ def get_sample_board_detail(board_id):
     if board_id == '1':
         post = {
             'id': '1',
-            'title': 'Welcome to Blog',
-            'content': 'This is a sample blog post with detailed content. AWS SAM을 사용한 서버리스 블로그 관리 시스템입니다.\n\n## 마크다운 지원\n\n![이미지 예시](https://via.placeholder.com/600x300)\n\n이 시스템은 **마크다운 형식**을 지원합니다.',
-            'category': '기관소식',
-            'author': 'admin',
-            'created_at': '2024-06-24T10:00:00Z',
-            'view_count': 101,  # 조회수 증가
-            'status': 'published'
+            'title': '2025년 가족센터 신규 프로그램 오픈',
+            'content': '가족의 건강한 소통과 화합을 위한 다양한 프로그램을 새롭게 선보입니다.\n\n## 프로그램 소개\n\n![프로그램 이미지](https://example.com/images/family-program-detail.jpg)\n\n### 주요 프로그램\n\n1. **가족 소통 워크숍**\n   - 대화법 교육\n   - 갈등 해결 방법\n   - 공감 능력 향상\n\n2. **문화체험 프로그램**\n   - 전통 문화 체험\n   - 다문화 이해\n   - 세대 간 교류\n\n### 신청 방법\n\n센터 방문 또는 전화 접수를 통해 신청 가능합니다.',
+            'category': '센터소식',
+            'author': '센터 관리자',
+            'created_at': '2025-06-29T10:00:00Z',
+            'view_count': 325,  # 조회수 증가
+            'status': 'published',
+            'image_url': 'https://example.com/images/family-program.jpg',
+            'short_description': '가족의 건강한 소통과 화합을 위한 다양한 프로그램을 새롭게 선보입니다.'
         }
         return create_response(200, post)
     elif board_id == '2':
         post = {
             'id': '2',
-            'title': 'Another Post',
-            'content': 'This is another sample post with more detailed content about serverless technologies.\n\n### 기술 스택\n\n- AWS Lambda\n- API Gateway\n- DynamoDB\n\n![기술 스택](https://via.placeholder.com/500x200)',
-            'category': '디지털소식',
-            'author': 'admin',
-            'created_at': '2024-06-24T15:00:00Z',
-            'view_count': 51,  # 조회수 증가
-            'status': 'published'
+            'title': '다문화가족 자녀 한국어 교육 프로그램 성과 발표',
+            'content': '지난 3개월간 진행된 한국어 교육 프로그램의 우수한 성과를 공유합니다.\n\n## 프로그램 성과\n\n![교육 성과](https://example.com/images/korean-education-detail.jpg)\n\n### 주요 성과\n\n- **참여 학생 수**: 45명\n- **한국어 능력 향상률**: 평균 85%\n- **학습 만족도**: 4.8/5.0\n\n### 수료생 후기\n\n> "선생님들이 친절하게 가르쳐주셔서 한국어가 많이 늘었어요!" - 김○○ 학생\n\n> "아이가 자신감을 얻고 학교생활에 적응하는 데 큰 도움이 되었습니다." - 학부모 이○○\n\n### 다음 기수 모집\n\n8월부터 시작되는 다음 기수 모집을 곧 시작할 예정입니다.',
+            'category': '프로그램소식',
+            'author': '교육팀',
+            'created_at': '2025-06-28T15:00:00Z',
+            'view_count': 290,  # 조회수 증가
+            'status': 'published',
+            'image_url': 'https://example.com/images/korean-education.jpg',
+            'short_description': '지난 3개월간 진행된 한국어 교육 프로그램의 우수한 성과를 공유합니다.'
+        }
+        return create_response(200, post)
+    elif board_id == '3':
+        post = {
+            'id': '3',
+            'title': '가족 소통 워크숍 "함께 걸어요" 개최',
+            'content': '가족 간의 깊이 있는 소통을 위한 특별 워크숍이 성황리에 마무리되었습니다.\n\n## 워크숍 개요\n\n![워크숍 현장](https://example.com/images/family-workshop-detail.jpg)\n\n### 프로그램 내용\n\n1. **소통의 기초**\n   - 경청의 중요성\n   - 공감적 대화법\n   - 감정 표현 방법\n\n2. **갈등 해결**\n   - 갈등의 원인 분석\n   - 건설적 해결 방안\n   - 화해와 용서\n\n3. **가족 활동**\n   - 함께하는 게임\n   - 역할극 체험\n   - 가족 미션 수행\n\n### 참가자 소감\n\n"가족과 더 깊은 대화를 나눌 수 있게 되었어요. 정말 유익한 시간이었습니다!"',
+            'category': '행사소식',
+            'author': '행사기획팀',
+            'created_at': '2025-06-27T09:00:00Z',
+            'view_count': 457,  # 조회수 증가
+            'status': 'published',
+            'image_url': 'https://example.com/images/family-workshop.jpg',
+            'short_description': '가족 간의 깊이 있는 소통을 위한 특별 워크숍이 성황리에 마무리되었습니다.'
         }
         return create_response(200, post)
     else:
@@ -696,16 +748,23 @@ def create_board(event, app_config):
     try:
         body = json.loads(event.get('body', '{}'))
         title = body.get('title')
-        content = body.get('content')  # 마크다운 형식 지원 (S3 이미지 URL 포함)
-        category = body.get('category', '기관소식')  # 카테고리: 기관소식, 디지털소식, 참고자료, 프로그램, 행사, 채용정보
+        content = body.get('content')
+        category = body.get('category', '센터소식')
+        image_url = body.get('image_url', '')  # 프론트에서 S3에 업로드 후 URL 전달
+        short_description = body.get('short_description', '')  # 카드뷰용 짧은 설명
+        author = body.get('author', 'admin')
         
         if not title or not content:
             return create_response(400, {'error': 'Title and content required'})
         
-        # 카테고리 유효성 검사
-        valid_categories = ['기관소식', '디지털소식', '참고자료', '프로그램', '행사', '채용정보']
+        # 카테고리 유효성 검사 (사진에 보이는 카테고리들로 업데이트)
+        valid_categories = ['센터소식', '프로그램소식', '행사소식', '생활정보', '교육']
         if category not in valid_categories:
             return create_response(400, {'error': f'Invalid category. Must be one of: {valid_categories}'})
+        
+        # short_description이 없으면 content의 앞부분을 사용
+        if not short_description:
+            short_description = content[:100] + '...' if len(content) > 100 else content
         
         # DynamoDB에 저장 시도
         dynamodb_config = app_config.config['dynamodb']
@@ -721,32 +780,22 @@ def create_board(event, app_config):
         new_post = {
             'id': post_id,
             'title': title,
-            'content': content,  # 마크다운 형식 내용
+            'content': content,
             'category': category,
-            'author': 'admin',
+            'author': author,
             'created_at': created_at,
             'view_count': 0,
-            'status': 'published'
+            'status': 'published',
+            'image_url': image_url,
+            'short_description': short_description
         }
         
         if dynamodb:
             table = get_table(dynamodb, dynamodb_config['table_name'])
             if table:
                 try:
-                    # DynamoDB에 아이템 저장 (간단한 스키마)
-                    table.put_item(
-                        Item={
-                            'id': post_id,
-                            'title': title,
-                            'content': content,  # 마크다운 형식 저장
-                            'category': category,
-                            'author': 'admin',
-                            'created_at': created_at,
-                            'updated_at': created_at,
-                            'view_count': 0,
-                            'status': 'published'
-                        }
-                    )
+                    # DynamoDB에 아이템 저장
+                    table.put_item(Item=new_post)
                     print(f"Successfully saved post to DynamoDB: {post_id}")
                     
                 except Exception as db_error:
@@ -788,7 +837,113 @@ def update_board(board_id, event, app_config):
     if not verify_admin_token(event, app_config):
         return create_response(401, {'error': 'Unauthorized'})
     
-    return create_response(200, {'message': f'Post {board_id} updated successfully'})
+    try:
+        body = json.loads(event.get('body', '{}'))
+        
+        # 업데이트할 필드들
+        update_fields = {}
+        if 'title' in body:
+            update_fields['title'] = body['title']
+        if 'content' in body:
+            update_fields['content'] = body['content']
+        if 'category' in body:
+            # 카테고리 유효성 검사
+            valid_categories = ['센터소식', '프로그램소식', '행사소식', '생활정보', '교육']
+            if body['category'] not in valid_categories:
+                return create_response(400, {'error': f'Invalid category. Must be one of: {valid_categories}'})
+            update_fields['category'] = body['category']
+        if 'image_url' in body:
+            update_fields['image_url'] = body['image_url']
+        if 'short_description' in body:
+            update_fields['short_description'] = body['short_description']
+        if 'author' in body:
+            update_fields['author'] = body['author']
+        if 'status' in body:
+            if body['status'] not in ['published', 'draft']:
+                return create_response(400, {'error': 'Status must be published or draft'})
+            update_fields['status'] = body['status']
+        
+        if not update_fields:
+            return create_response(400, {'error': 'No fields to update'})
+        
+        # updated_at 추가
+        update_fields['updated_at'] = datetime.utcnow().isoformat() + 'Z'
+        
+        # DynamoDB 업데이트 시도
+        dynamodb_config = app_config.config['dynamodb']
+        dynamodb = get_dynamodb(
+            region=dynamodb_config['region'],
+            table_name=dynamodb_config['table_name'],
+            endpoint_url=dynamodb_config.get('endpoint_url')
+        )
+        
+        if dynamodb:
+            table = get_table(dynamodb, dynamodb_config['table_name'])
+            if table:
+                try:
+                    # 먼저 게시글이 존재하는지 확인
+                    response = table.get_item(Key={'id': board_id})
+                    if 'Item' not in response:
+                        return create_response(404, {'error': 'Post not found'})
+                    
+                    # UpdateExpression 구성
+                    update_expression = "SET " + ", ".join([f"{key} = :{key}" for key in update_fields.keys()])
+                    expression_attribute_values = {f":{key}": value for key, value in update_fields.items()}
+                    
+                    # DynamoDB 업데이트
+                    table.update_item(
+                        Key={'id': board_id},
+                        UpdateExpression=update_expression,
+                        ExpressionAttributeValues=expression_attribute_values,
+                        ReturnValues='ALL_NEW'
+                    )
+                    
+                    print(f"Successfully updated post in DynamoDB: {board_id}")
+                    
+                    # 업데이트된 게시글 조회
+                    updated_response = table.get_item(Key={'id': board_id})
+                    updated_post = updated_response['Item']
+                    
+                    return create_response(200, {
+                        'message': 'Post updated successfully',
+                        'post': {
+                            'id': updated_post.get('id', ''),
+                            'title': updated_post.get('title', ''),
+                            'content': updated_post.get('content', ''),
+                            'category': updated_post.get('category', '센터소식'),
+                            'author': updated_post.get('author', ''),
+                            'created_at': updated_post.get('created_at', ''),
+                            'updated_at': updated_post.get('updated_at', ''),
+                            'view_count': int(updated_post.get('view_count', 0)),
+                            'status': updated_post.get('status', 'published'),
+                            'image_url': updated_post.get('image_url', ''),
+                            'short_description': updated_post.get('short_description', '')
+                        }
+                    })
+                    
+                except Exception as db_error:
+                    print(f"Error updating DynamoDB: {str(db_error)}")
+                    return create_response(500, {'error': 'Database update failed'})
+            else:
+                return create_response(500, {'error': 'Database table not available'})
+        else:
+            return create_response(500, {'error': 'Database connection failed'})
+            
+    except json.JSONDecodeError as e:
+        return create_response(400, {
+            'error': 'Invalid JSON',
+            'error_message': str(e)
+        })
+    except Exception as e:
+        import traceback
+        error_detail = {
+            'error': 'Error updating post',
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'traceback': traceback.format_exc()
+        }
+        print(f"Error updating post: {str(e)}")
+        return create_response(500, error_detail)
 
 def delete_board(board_id, event, app_config):
     """게시글 삭제 (관리자 전용)"""
@@ -796,15 +951,99 @@ def delete_board(board_id, event, app_config):
     if not verify_admin_token(event, app_config):
         return create_response(401, {'error': 'Unauthorized'})
     
-    return create_response(200, {'message': f'Post {board_id} deleted successfully'})
+    try:
+        # DynamoDB 삭제 시도
+        dynamodb_config = app_config.config['dynamodb']
+        dynamodb = get_dynamodb(
+            region=dynamodb_config['region'],
+            table_name=dynamodb_config['table_name'],
+            endpoint_url=dynamodb_config.get('endpoint_url')
+        )
+        
+        if dynamodb:
+            table = get_table(dynamodb, dynamodb_config['table_name'])
+            if table:
+                try:
+                    # 먼저 게시글이 존재하는지 확인
+                    response = table.get_item(Key={'id': board_id})
+                    if 'Item' not in response:
+                        return create_response(404, {'error': 'Post not found'})
+                    
+                    # 삭제할 게시글 정보 저장
+                    deleted_post = response['Item']
+                    
+                    # DynamoDB에서 삭제
+                    table.delete_item(Key={'id': board_id})
+                    
+                    print(f"Successfully deleted post from DynamoDB: {board_id}")
+                    
+                    return create_response(200, {
+                        'message': 'Post deleted successfully',
+                        'deleted_post': {
+                            'id': deleted_post.get('id', ''),
+                            'title': deleted_post.get('title', ''),
+                            'category': deleted_post.get('category', '센터소식'),
+                            'author': deleted_post.get('author', ''),
+                            'created_at': deleted_post.get('created_at', '')
+                        }
+                    })
+                    
+                except Exception as db_error:
+                    print(f"Error deleting from DynamoDB: {str(db_error)}")
+                    return create_response(500, {'error': 'Database deletion failed'})
+            else:
+                return create_response(500, {'error': 'Database table not available'})
+        else:
+            return create_response(500, {'error': 'Database connection failed'})
+            
+    except Exception as e:
+        import traceback
+        error_detail = {
+            'error': 'Error deleting post',
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'traceback': traceback.format_exc()
+        }
+        print(f"Error deleting post: {str(e)}")
+        return create_response(500, error_detail)
 
 def upload_image(event, app_config):
-    """이미지 업로드 (관리자 전용)"""
+    """이미지 업로드 정보 제공 (관리자 전용)"""
     # JWT 토큰 검증
     if not verify_admin_token(event, app_config):
         return create_response(401, {'error': 'Unauthorized'})
     
-    return create_response(200, {
-        'message': 'Image upload functionality',
-        'imageUrl': 'https://example.com/sample-image.jpg'
-    })
+    try:
+        # 프론트에서 S3에 직접 업로드할 수 있도록 정보 제공
+        # 실제 구현에서는 S3 presigned URL을 생성하여 반환
+        
+        # 현재는 샘플 응답
+        return create_response(200, {
+            'message': 'Image upload endpoint',
+            'instructions': {
+                'method': 'POST',
+                'description': 'Frontend should upload images to S3 and send the URL in the post creation/update request',
+                'example_flow': [
+                    '1. Frontend uploads image to S3',
+                    '2. Get the S3 URL from upload response',
+                    '3. Include image_url in POST/PUT request to /board'
+                ]
+            },
+            'sample_response': {
+                'imageUrl': 'https://your-s3-bucket.s3.amazonaws.com/images/sample-image.jpg',
+                'success': True
+            },
+            'supported_formats': ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+            'max_size': '5MB'
+        })
+        
+    except Exception as e:
+        import traceback
+        error_detail = {
+            'error': 'Error in upload image endpoint',
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'traceback': traceback.format_exc()
+        }
+        print(f"Error in upload image endpoint: {str(e)}")
+        return create_response(500, error_detail)

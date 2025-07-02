@@ -73,13 +73,6 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /auth/login
             Method: OPTIONS
-        AuthTestApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /auth/test
-            Method: GET
-
   # 게시판 CRUD 함수
   BoardFunction:
     Type: AWS::Serverless::Function
@@ -179,12 +172,166 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /board/upload
             Method: OPTIONS
-        BoardTestApi:
+  # 뉴스 CRUD 함수
+  NewsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: "BlogNews"
+      Handler: app.lambda_handler
+      CodeUri: ./news
+      Timeout: 30
+      MemorySize: 256
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          TABLE_NAME: "blog-table"
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table"
+      Events:
+        # 뉴스 목록 조회 (공개)
+        ListNewsApi:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /board/test
+            Path: /news
             Method: GET
+        # 뉴스 상세 조회 (공개)
+        GetNewsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news/{newsId}
+            Method: GET
+        # 뉴스 생성 (관리자 전용)
+        CreateNewsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news
+            Method: POST
+        # 뉴스 수정 (관리자 전용)
+        UpdateNewsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news/{newsId}
+            Method: PUT
+        # 뉴스 삭제 (관리자 전용)
+        DeleteNewsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news/{newsId}
+            Method: DELETE
+        # CORS 옵션
+        NewsOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news
+            Method: OPTIONS
+        NewsItemOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news/{newsId}
+            Method: OPTIONS
+
+  # 갤러리 CRUD 함수
+  GalleryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: "BlogGallery"
+      Handler: app.lambda_handler
+      CodeUri: ./gallery
+      Timeout: 30
+      MemorySize: 256
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          TABLE_NAME: "blog-table"
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+                - dynamodb:Scan
+              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table"
+      Events:
+        # 갤러리 목록 조회 (공개)
+        ListGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery
+            Method: GET
+        # 갤러리 상세 조회 (공개)
+        GetGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery/{galleryId}
+            Method: GET
+        # 갤러리 생성 (관리자 전용)
+        CreateGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery
+            Method: POST
+        # 갤러리 수정 (관리자 전용)
+        UpdateGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery/{galleryId}
+            Method: PUT
+        # 갤러리 삭제 (관리자 전용)
+        DeleteGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery/{galleryId}
+            Method: DELETE
+        # CORS 옵션
+        GalleryOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery
+            Method: OPTIONS
+        GalleryItemOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery/{galleryId}
+            Method: OPTIONS
+
 
 Outputs:
   # Lambda Function Names (for CI/CD)
@@ -195,6 +342,14 @@ Outputs:
   BoardFunctionName:
     Description: "Board Lambda Function Name"
     Value: !Ref BoardFunction
+
+  NewsFunctionName:
+    Description: "News Lambda Function Name"
+    Value: !Ref NewsFunction
+
+  GalleryFunctionName:
+    Description: "Gallery Lambda Function Name"
+    Value: !Ref GalleryFunction
 
   # API Gateway Information
   ApiGatewayId:
@@ -213,3 +368,11 @@ Outputs:
   BoardApiEndpoint:
     Description: "Board API endpoint"
     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/board"
+
+  NewsApiEndpoint:
+    Description: "News API endpoint"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/news"
+
+  GalleryApiEndpoint:
+    Description: "Gallery API endpoint"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/gallery"

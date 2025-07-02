@@ -8,7 +8,7 @@ import json
 def create_response(status_code, body, headers=None):
     """통합 Response 생성"""
     default_headers = {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -20,7 +20,7 @@ def create_response(status_code, body, headers=None):
     return {
         'statusCode': status_code,
         'headers': default_headers,
-        'body': json.dumps(body) if isinstance(body, (dict, list)) else body
+        'body': json.dumps(body, ensure_ascii=False) if isinstance(body, (dict, list)) else body
     }
 
 

@@ -39,7 +39,7 @@ def create_local_table():
             print("   - AWS credentials configured for DynamoDB access")
             return False
     
-    table_name = 'blog-table-local'
+    table_name = 'blog-table'
     
     try:
         # 기존 테이블 확인
@@ -87,6 +87,7 @@ def setup_sample_data(table):
     """샘플 데이터 삽입"""
     
     sample_posts = [
+        # 기존 Board 데이터
         {
             'id': '1',
             'title': '블로그 시스템 소개',
@@ -119,6 +120,66 @@ def setup_sample_data(table):
             'status': 'draft',
             'view_count': 0,
             'tags': ['dynamodb', 'nosql', 'modeling']
+        },
+        # News 데이터
+        {
+            'id': 'news_1',
+            'content_type': 'news',
+            'title': '가족센터 2025년 상반기 사업계획 발표',
+            'content': '올해 상반기 가족센터의 주요 사업계획을 발표합니다.',
+            'category': '주요소식',
+            'author': '기획팀',
+            'created_at': '2025-07-03T10:00:00Z',
+            'view_count': 156,
+            'status': 'published',
+            'image_url': 'https://example.com/images/business-plan.jpg',
+            'short_description': '올해 상반기 가족센터의 주요 사업계획을 발표합니다.'
+        },
+        {
+            'id': 'news_2',
+            'content_type': 'news',
+            'title': '다문화가족 지원 정책 개선안 공지',
+            'content': '다문화가족을 위한 새로운 지원 정책이 개선되었습니다.',
+            'category': '정책소식',
+            'author': '정책팀',
+            'created_at': '2025-07-02T14:30:00Z',
+            'view_count': 203,
+            'status': 'published',
+            'image_url': 'https://example.com/images/policy-update.jpg',
+            'short_description': '다문화가족을 위한 새로운 지원 정책이 개선되었습니다.'
+        },
+        # Gallery 데이터
+        {
+            'id': 'gallery_1',
+            'content_type': 'gallery',
+            'title': '다문화가족 지원 서비스 안내서',
+            'content': '다문화가족을 위한 종합 지원 서비스 안내서입니다.',
+            'category': '자료실',
+            'author': '정보팀',
+            'created_at': '2025-07-03T09:00:00Z',
+            'view_count': 89,
+            'status': 'published',
+            'image_url': 'https://example.com/images/guide-cover.jpg',
+            'short_description': '다문화가족을 위한 종합 지원 서비스 안내서입니다.',
+            'file_url': 'https://example.com/files/multicultural-guide.pdf',
+            'file_name': '다문화가족_지원서비스_안내서.pdf',
+            'file_size': 2048576
+        },
+        {
+            'id': 'gallery_2',
+            'content_type': 'gallery',
+            'title': '가족상담 신청서 양식',
+            'content': '가족상담을 신청하실 때 사용하는 양식입니다.',
+            'category': '양식다운로드',
+            'author': '상담팀',
+            'created_at': '2025-07-02T14:00:00Z',
+            'view_count': 156,
+            'status': 'published',
+            'image_url': 'https://example.com/images/form-preview.jpg',
+            'short_description': '가족상담을 신청하실 때 사용하는 양식입니다.',
+            'file_url': 'https://example.com/files/counseling-application.pdf',
+            'file_name': '가족상담_신청서.pdf',
+            'file_size': 512000
         }
     ]
     
@@ -136,7 +197,7 @@ def setup_sample_data(table):
         print(f"❌ Error inserting sample data: {str(e)}")
         return False
 
-def test_table_access(table_name='blog-table-local'):
+def test_table_access(table_name='blog-table'):
     """테이블 접근 테스트"""
     
     try:
@@ -172,7 +233,7 @@ def main():
     print("🗃️  Setting up local DynamoDB table for testing...")
     print()
     print("ℹ️  This script will:")
-    print("   1. Create 'blog-table-local' table")
+    print("   1. Create 'blog-table' table")
     print("   2. Insert sample blog posts")
     print("   3. Test table access")
     print()

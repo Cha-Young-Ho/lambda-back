@@ -77,12 +77,26 @@ jobs:
           --query 'Stacks[0].Outputs[?OutputKey==`BoardFunctionName`].OutputValue' \
           --output text)
         
+        NEWS_FUNCTION_NAME=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query 'Stacks[0].Outputs[?OutputKey==`NewsFunctionName`].OutputValue' \
+          --output text)
+        
+        GALLERY_FUNCTION_NAME=$(aws cloudformation describe-stacks \
+          --stack-name ${{ env.STACK_NAME }} \
+          --query 'Stacks[0].Outputs[?OutputKey==`GalleryFunctionName`].OutputValue' \
+          --output text)
+        
         echo "auth-function-name=$AUTH_FUNCTION_NAME" >> $GITHUB_OUTPUT
         echo "board-function-name=$BOARD_FUNCTION_NAME" >> $GITHUB_OUTPUT
+        echo "news-function-name=$NEWS_FUNCTION_NAME" >> $GITHUB_OUTPUT
+        echo "gallery-function-name=$GALLERY_FUNCTION_NAME" >> $GITHUB_OUTPUT
         
         echo "📋 Lambda Function Names:"
         echo "   Auth: $AUTH_FUNCTION_NAME"
         echo "   Board: $BOARD_FUNCTION_NAME"
+        echo "   News: $NEWS_FUNCTION_NAME"
+        echo "   Gallery: $GALLERY_FUNCTION_NAME"
 
     - name: Create Lambda Versions
       id: lambda-versions
@@ -101,11 +115,29 @@ jobs:
           --query 'Version' \
           --output text)
         
+        # News Function 버전 생성
+        NEWS_VERSION=$(aws lambda publish-version \
+          --function-name ${{ steps.lambda-names.outputs.news-function-name }} \
+          --description "Version ${{ steps.version.outputs.version }} deployed from tag ${{ steps.version.outputs.tag }}" \
+          --query 'Version' \
+          --output text)
+        
+        # Gallery Function 버전 생성
+        GALLERY_VERSION=$(aws lambda publish-version \
+          --function-name ${{ steps.lambda-names.outputs.gallery-function-name }} \
+          --description "Version ${{ steps.version.outputs.version }} deployed from tag ${{ steps.version.outputs.tag }}" \
+          --query 'Version' \
+          --output text)
+        
         echo "auth-version=$AUTH_VERSION" >> $GITHUB_OUTPUT
         echo "board-version=$BOARD_VERSION" >> $GITHUB_OUTPUT
+        echo "news-version=$NEWS_VERSION" >> $GITHUB_OUTPUT
+        echo "gallery-version=$GALLERY_VERSION" >> $GITHUB_OUTPUT
         
         echo "🔢 Auth Function Version: $AUTH_VERSION"
         echo "🔢 Board Function Version: $BOARD_VERSION"
+        echo "🔢 News Function Version: $NEWS_VERSION"
+        echo "🔢 Gallery Function Version: $GALLERY_VERSION"
 
     - name: Output deployment info
       run: |
@@ -117,10 +149,16 @@ jobs:
         echo "   Auth Version: ${{ steps.lambda-versions.outputs.auth-version }}"
         echo "   Board Function: ${{ steps.lambda-names.outputs.board-function-name }}"
         echo "   Board Version: ${{ steps.lambda-versions.outputs.board-version }}"
+        echo "   News Function: ${{ steps.lambda-names.outputs.news-function-name }}"
+        echo "   News Version: ${{ steps.lambda-versions.outputs.news-version }}"
+        echo "   Gallery Function: ${{ steps.lambda-names.outputs.gallery-function-name }}"
+        echo "   Gallery Version: ${{ steps.lambda-versions.outputs.gallery-version }}"
         echo ""
         echo "🔗 Lambda Function ARNs with Versions:"
         echo "   Auth: ${{ steps.lambda-names.outputs.auth-function-name }}:${{ steps.lambda-versions.outputs.auth-version }}"
         echo "   Board: ${{ steps.lambda-names.outputs.board-function-name }}:${{ steps.lambda-versions.outputs.board-version }}"
+        echo "   News: ${{ steps.lambda-names.outputs.news-function-name }}:${{ steps.lambda-versions.outputs.news-version }}"
+        echo "   Gallery: ${{ steps.lambda-names.outputs.gallery-function-name }}:${{ steps.lambda-versions.outputs.gallery-version }}"
         echo ""
         echo "📖 다음 단계:"
         echo "   AWS Console에서 API Gateway 설정을 수동으로 업데이트하세요"
