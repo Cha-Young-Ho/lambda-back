@@ -354,29 +354,4 @@ class GalleryRepository(BaseRepository):
             'date': data.get('created_at', '').split('T')[0] if data.get('created_at') else ''
         }
 
-class BoardRepository(BaseRepository):
-    """게시판 리포지토리"""
-    
-    def __init__(self, app_config):
-        super().__init__(app_config, 'board')
-    
-    def _get_updatable_fields(self) -> List[str]:
-        return ['title', 'content', 'category']
-    
-    def _clean_item_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """게시판 데이터 정제"""
-        cleaned = data.copy()
-        return cleaned
-    
-    def _clean_output_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """게시판 출력 데이터 정제"""
-        return {
-            'id': data.get('id', ''),
-            'title': data.get('title', ''),
-            'content': data.get('content', ''),
-            'category': data.get('category', ''),
-            'created_at': data.get('created_at', ''),
-            'updated_at': data.get('updated_at', ''),
-            'status': data.get('status', ''),
-            'date': data.get('created_at', '').split('T')[0] if data.get('created_at') else ''
-        }
+

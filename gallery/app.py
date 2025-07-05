@@ -13,7 +13,7 @@ from common.categories import validate_category_value, get_allowed_categories
 from common.s3_service import S3Service, get_allowed_content_types, get_file_extension_from_content_type
 from common.response import (
     create_response, create_error_response, create_success_response,
-    create_not_found_response, create_created_response
+    create_not_found_response, create_created_response, DecimalEncoder
 )
 from common.logging import get_logger, log_api_call
 from common.config import AppConfig
@@ -165,7 +165,7 @@ def lambda_handler(event, context):
         
         # OPTIONS 요청 처리
         if event.get('httpMethod') == 'OPTIONS':
-            return create_response(200, '', cors=True)
+            return create_success_response({})
         
         # API 호출 로깅
         log_api_call(logger, event, context)
@@ -210,14 +210,24 @@ def handle_list_gallery(event, service: GalleryService):
         
         result = service.get_gallery_list(page, limit, category)
         
-        return create_response(200, {
-            'success': True,
-            'data': result['items'],
-            'total': result['total'],
-            'page': result['page'],
-            'limit': result['limit'],
-            'has_next': result['has_next']
-        })
+        # News API와 동일한 응답 구조 사용
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({
+                'success': True,
+                'data': result['items'],
+                'total': result['total'],
+                'page': result['page'],
+                'limit': result['limit'],
+                'has_next': result['has_next']
+            }, cls=DecimalEncoder)
+        }
         
     except ValueError as e:
         return create_error_response(400, str(e))
@@ -230,13 +240,23 @@ def handle_recent_gallery(event, service: GalleryService):
     try:
         items = service.get_recent_gallery(5)
         
-        return create_response(200, {
-            'success': True,
-            'type': 'gallery',
-            'data': items,
-            'total': len(items),
-            'is_recent': True
-        })
+        # News API와 동일한 응답 구조 사용
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+            },
+            'body': json.dumps({
+                'success': True,
+                'type': 'gallery',
+                'data': items,
+                'total': len(items),
+                'is_recent': True
+            }, cls=DecimalEncoder)
+        }
         
     except Exception as e:
         logger.error(f"Error in handle_recent_gallery: {str(e)}")

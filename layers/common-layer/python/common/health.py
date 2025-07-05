@@ -84,7 +84,7 @@ def get_api_info() -> Dict[str, Any]:
     return {
         'api_name': 'Blog Management System',
         'version': '2.0.0',
-        'description': 'Blog management API with news, gallery, and board functionality',
+        'description': 'Blog management API with news and gallery functionality',
         'endpoints': {
             'auth': [
                 'POST /auth/login',
@@ -106,15 +106,6 @@ def get_api_info() -> Dict[str, Any]:
                 'POST /gallery',
                 'PUT /gallery/{id}',
                 'DELETE /gallery/{id}'
-            ],
-            'board': [
-                'GET /board',
-                'GET /board/recent',
-                'GET /board/{id}',
-                'POST /board',
-                'PUT /board/{id}',
-                'DELETE /board/{id}',
-                'POST /board/upload'
             ]
         },
         'categories': get_all_categories(),

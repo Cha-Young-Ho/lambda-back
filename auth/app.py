@@ -1,21 +1,23 @@
 """
-Auth API - 실용적인 업계 표준 패턴
-- 클린 아키텍처
-- 서비스 레이어
-- 표준화된 에러 처리
+Auth API - Standardized Lambda Handler
+표준화된 인증 API 핸들러
+- 베이스 핸들러 사용
 - JWT 토큰 관리
+- 표준화된 에러 처리
 """
 import json
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, Optional
 
 from common.config import AppConfig
 from common.response import (
-    create_response, create_error_response, create_success_response,
-    create_created_response
+    create_response, create_error_response, create_success_response
 )
-from common.logging import get_logger, log_api_call
+from common.logging import get_logger, performance_monitor
+from common.jwt_service import JWTService
+from common.error_handlers import (
+    ValidationError, UnauthorizedError, validate_required_fields
+)
 
 logger = get_logger(__name__)
 
@@ -24,11 +26,17 @@ class AuthService:
     
     def __init__(self, app_config):
         self.app_config = app_config
+        self.jwt_service = JWTService(app_config)
     
-    def authenticate_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
-        """사용자 인증"""
-        if not username or not password:
-            raise ValueError("Username and password are required")
+    @performance_monitor('auth_login')
+    def authenticate_user(self, username: str, password: str) -> Dict[str, Any]:
+        """사용자 인증 및 토큰 생성"""
+        # 입력 검증
+        if not username or not username.strip():
+            raise ValidationError("Username is required")
+        
+        if not password or not password.strip():
+            raise ValidationError("Password is required")
         
         # 관리자 정보 가져오기
         admin_config = self.app_config.get_admin_config()
@@ -36,165 +44,165 @@ class AuthService:
         admin_password = admin_config.get('password', 'admin123')
         
         # 인증 확인
-        if username == admin_username and password == admin_password:
-            return {
-                'username': username,
-                'role': 'admin',
-                'authenticated': True
-            }
+        if username.strip() != admin_username or password != admin_password:
+            raise UnauthorizedError("Invalid username or password")
         
-        return None
-    
-    def create_token(self, user_info: Dict[str, Any]) -> str:
-        """JWT 토큰 생성 (간단한 구현)"""
-        # 실제 운영에서는 PyJWT 라이브러리 사용 권장
-        payload = {
-            'username': user_info['username'],
-            'role': user_info['role'],
-            'exp': (datetime.utcnow() + timedelta(hours=24)).isoformat(),
-            'iat': datetime.utcnow().isoformat()
+        # 사용자 정보
+        user_info = {
+            'username': username.strip(),
+            'role': 'admin',
+            'authenticated': True
         }
-        
-        # 간단한 토큰 인코딩 (실제로는 JWT 라이브러리 사용)
-        import base64
-        token_data = json.dumps(payload)
-        encoded_token = base64.b64encode(token_data.encode()).decode()
-        return f"Bearer.{encoded_token}"
-    
-    def validate_token(self, token: str) -> Optional[Dict[str, Any]]:
-        """JWT 토큰 검증"""
-        try:
-            if not token.startswith('Bearer.'):
-                return None
-            
-            import base64
-            encoded_token = token.replace('Bearer.', '')
-            token_data = base64.b64decode(encoded_token.encode()).decode()
-            payload = json.loads(token_data)
-            
-            # 만료 시간 확인
-            exp_time = datetime.fromisoformat(payload['exp'])
-            if datetime.utcnow() > exp_time:
-                return None
-            
-            return payload
-            
-        except Exception as e:
-            logger.error(f"Token validation error: {str(e)}")
-            return None
-
-# 글로벌 인스턴스
-app_config = AppConfig()
-auth_service = AuthService(app_config)
-
-def handle_login(event):
-    """로그인 처리"""
-    try:
-        # 요청 본문 파싱
-        body = json.loads(event.get('body', '{}'))
-        username = body.get('username', '').strip()
-        password = body.get('password', '').strip()
-        
-        # 입력 값 검증
-        if not username or not password:
-            return create_error_response(
-                message="Username and password are required",
-                status_code=400
-            )
-        
-        # 사용자 인증
-        user_info = auth_service.authenticate_user(username, password)
-        if not user_info:
-            return create_error_response(
-                message="Invalid username or password",
-                status_code=401
-            )
         
         # JWT 토큰 생성
-        token = auth_service.create_token(user_info)
+        token = self.jwt_service.create_token(user_info)
         
-        response_data = {
+        return {
             'user': user_info,
             'token': token,
-            'expires_in': 86400  # 24시간
+            'expires_in': 3600,  # 1시간
+            'token_type': 'Bearer'
         }
+    
+    @performance_monitor('auth_validate')
+    def validate_token(self, token: str) -> Dict[str, Any]:
+        """토큰 검증"""
+        if not token or not token.strip():
+            raise ValidationError("Token is required")
         
-        return create_success_response(
-            data=response_data,
-            message="Login successful"
-        )
-        
-    except ValueError as e:
-        logger.warning(f"Login validation error: {str(e)}")
-        return create_error_response(message=str(e), status_code=400)
-    except Exception as e:
-        logger.error(f"Login error: {str(e)}")
-        return create_error_response(
-            message="Internal server error during login",
-            status_code=500
-        )
+        try:
+            # Bearer 접두사 제거
+            if token.startswith('Bearer '):
+                token = token[7:]
+            
+            # 토큰 검증
+            payload = self.jwt_service.verify_token(token)
+            
+            return {
+                'valid': True,
+                'user': {
+                    'username': payload.get('username'),
+                    'role': payload.get('role'),
+                    'authenticated': True
+                },
+                'expires_at': payload.get('exp')
+            }
+            
+        except Exception as e:
+            raise UnauthorizedError("Invalid or expired token")
 
-def handle_validate(event):
-    """토큰 검증"""
-    try:
-        # Authorization 헤더에서 토큰 추출
+class AuthAPIHandler:
+    """인증 API 핸들러"""
+    
+    def __init__(self):
+        self.app_config = AppConfig()
+        self.service = AuthService(self.app_config)
+        self.cold_start = True
+    
+    def lambda_handler(self, event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+        """Lambda 핸들러"""
+        request_id = getattr(context, 'aws_request_id', 'local')
+        
+        try:
+            # 콜드 스타트 로깅
+            if self.cold_start:
+                logger.info("Cold start for AuthAPIHandler", 
+                          extra={'cold_start': True, 'request_id': request_id})
+                self.cold_start = False
+            
+            # 라우팅
+            path = event.get('path', '')
+            method = event.get('httpMethod', '').upper()
+            
+            # CORS 처리
+            if method == 'OPTIONS':
+                return self._handle_options()
+            
+            # 경로별 라우팅
+            if '/login' in path:
+                return self._handle_login(event)
+            elif '/validate' in path:
+                return self._handle_validate(event)
+            elif '/test' in path:
+                return self._handle_test()
+            else:
+                return create_error_response("Not found", 404)
+            
+        except Exception as e:
+            from common.error_handlers import handle_api_error
+            return handle_api_error(e, request_id)
+    
+    def _handle_options(self) -> Dict[str, Any]:
+        """CORS OPTIONS 요청 처리"""
+        return create_response(
+            {},
+            200,
+            {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            }
+        )
+    
+    def _handle_login(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """로그인 처리"""
+        if event.get('httpMethod') != 'POST':
+            return create_error_response("Method not allowed", 405)
+        
+        # 요청 본문 파싱
+        body = event.get('body', '{}')
+        if isinstance(body, str):
+            data = json.loads(body) if body else {}
+        else:
+            data = body
+        
+        # 필수 필드 검증
+        validate_required_fields(data, ['username', 'password'])
+        
+        # 인증 처리
+        result = self.service.authenticate_user(
+            data['username'], 
+            data['password']
+        )
+        
+        return create_success_response(result)
+    
+    def _handle_validate(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """토큰 검증 처리"""
+        if event.get('httpMethod') != 'POST':
+            return create_error_response("Method not allowed", 405)
+        
+        # 헤더에서 토큰 추출
         headers = event.get('headers', {})
-        auth_header = headers.get('Authorization') or headers.get('authorization', '')
+        auth_header = headers.get('Authorization', '')
         
         if not auth_header:
-            return create_error_response(
-                message="Authorization header is required",
-                status_code=401
-            )
+            # 요청 본문에서 토큰 추출
+            body = event.get('body', '{}')
+            if isinstance(body, str):
+                data = json.loads(body) if body else {}
+            else:
+                data = body
+            
+            token = data.get('token', '')
+        else:
+            token = auth_header
         
         # 토큰 검증
-        token_payload = auth_service.validate_token(auth_header)
-        if not token_payload:
-            return create_error_response(
-                message="Invalid or expired token",
-                status_code=401
-            )
-        
-        return create_success_response(
-            data=token_payload,
-            message="Token is valid"
-        )
-        
-    except Exception as e:
-        logger.error(f"Token validation error: {str(e)}")
-        return create_error_response(
-            message="Internal server error during token validation",
-            status_code=500
-        )
+        result = self.service.validate_token(token)
+        return create_success_response(result)
+    
+    def _handle_test(self) -> Dict[str, Any]:
+        """테스트 엔드포인트"""
+        return create_success_response({
+            'message': 'Auth API is working',
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'service': 'auth'
+        })
+
+# Lambda 핸들러 인스턴스
+handler = AuthAPIHandler()
 
 def lambda_handler(event, context):
-    """메인 Lambda 핸들러"""
-    try:
-        http_method = event.get('httpMethod')
-        path = event.get('path', '')
-        
-        # API 호출 로깅
-        log_api_call(logger, event, context)
-        
-        logger.info(f"Auth API Request: {http_method} {path}")
-        
-        # 라우팅
-        if http_method == 'POST' and path == '/auth/login':
-            return handle_login(event)
-        elif http_method == 'POST' and path == '/auth/validate':
-            return handle_validate(event)
-        elif http_method == 'OPTIONS':
-            # CORS preflight 요청 처리
-            return create_response(200, '', cors=True)
-        else:
-            return create_error_response(
-                message=f"Route not found: {http_method} {path}",
-                status_code=404
-            )
-            
-    except Exception as e:
-        logger.error(f"Unexpected error in auth handler: {str(e)}")
-        return create_error_response(
-            message="Internal server error",
-            status_code=500
-        )
+    """Lambda 엔트리 포인트"""
+    return handler.lambda_handler(event, context)

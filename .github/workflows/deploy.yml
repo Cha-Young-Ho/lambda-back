@@ -10,7 +10,53 @@ env:
   STACK_NAME: blog-system     # 단일 스택 이름
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-test.txt
+        
+    - name: Start test services
+      run: |
+        cd tests
+        docker-compose -f docker-compose.test.yml up -d
+        sleep 15  # Wait for services to be ready
+        
+    - name: Run unit tests
+      run: |
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)/layers/common-layer/python"
+        ./run_tests.sh --unit --coverage
+        
+    - name: Run integration tests
+      run: |
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)/layers/common-layer/python"
+        ./run_tests.sh --integration
+        
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: always()
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        
+    - name: Stop test services
+      if: always()
+      run: |
+        cd tests
+        docker-compose -f docker-compose.test.yml down
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       id-token: write   # OIDC에 필요한 권한

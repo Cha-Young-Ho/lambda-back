@@ -87,34 +87,6 @@ def setup_sample_data(table):
     """샘플 데이터 삽입"""
     
     sample_posts = [
-        # 기존 Board 데이터
-        {
-            'id': '1',
-            'title': '블로그 시스템 소개',
-            'content': 'AWS SAM을 사용한 서버리스 블로그 관리 시스템입니다.\n\n이 시스템은 다음과 같은 기능을 제공합니다:\n- 게시글 CRUD\n- 관리자 인증\n- 이미지 업로드',
-            'created_at': '2024-06-24T10:00:00Z',
-            'updated_at': '2024-06-24T10:00:00Z',
-            'status': 'published',
-            'tags': ['aws', 'serverless', 'blog']
-        },
-        {
-            'id': '2',
-            'title': 'Lambda와 API Gateway 활용',
-            'content': 'Lambda 함수와 API Gateway를 연동하여 RESTful API를 구축하는 방법을 알아봅니다.\n\n주요 장점:\n- 서버 관리 불필요\n- 자동 스케일링\n- 사용한 만큼만 비용 지불',
-            'created_at': '2024-06-24T15:30:00Z',
-            'updated_at': '2024-06-24T15:30:00Z',
-            'status': 'published',
-            'tags': ['lambda', 'api-gateway', 'rest']
-        },
-        {
-            'id': '3',
-            'title': 'DynamoDB 데이터 모델링',
-            'content': 'NoSQL 데이터베이스인 DynamoDB의 효율적인 데이터 모델링 전략을 소개합니다.\n\n아직 작성 중인 글입니다.',
-            'created_at': '2024-06-24T09:15:00Z',
-            'updated_at': '2024-06-24T09:15:00Z',
-            'status': 'draft',
-            'tags': ['dynamodb', 'nosql', 'modeling']
-        },
         # News 데이터
         {
             'id': 'news_1',
@@ -247,7 +219,7 @@ def main():
         print()
         print("📋 Next steps:")
         print("   1. Run 'sam local start-api' to start the API")
-        print("   2. Test with: curl http://localhost:3000/board")
+        print("   2. Test with: curl http://localhost:3000/news")
         print()
         print("🔌 Connection options:")
         print("   - DynamoDB Local: http://localhost:8000")

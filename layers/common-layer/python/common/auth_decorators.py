@@ -192,3 +192,8 @@ def rate_limit(requests_per_minute: int = 60):
         
         return wrapper
     return decorator
+
+
+def admin_required(func: Callable) -> Callable:
+    """관리자 권한이 필요한 엔드포인트를 위한 데코레이터"""
+    return require_auth('admin')(func)

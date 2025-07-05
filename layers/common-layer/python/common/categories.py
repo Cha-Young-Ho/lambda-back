@@ -31,7 +31,7 @@ def get_allowed_categories(content_type: str) -> List[str]:
     컨텐츠 타입에 따른 허용 카테고리 목록 반환
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
     
     Returns:
         허용된 카테고리 목록
@@ -47,7 +47,7 @@ def get_default_category(content_type: str) -> Optional[str]:
     컨텐츠 타입에 따른 기본 카테고리 반환
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
     
     Returns:
         기본 카테고리
@@ -63,7 +63,7 @@ def validate_category_value(content_type: str, category: str) -> bool:
     카테고리 값이 유효한지 검증
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
         category: 검증할 카테고리 값
     
     Returns:
@@ -80,7 +80,7 @@ def is_category_required(content_type: str) -> bool:
     컨텐츠 타입에서 카테고리가 필수인지 확인
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
     
     Returns:
         필수 여부
@@ -96,7 +96,7 @@ def get_category_info(content_type: str) -> Dict:
     컨텐츠 타입의 카테고리 정보 전체 반환
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
     
     Returns:
         카테고리 정보 딕셔너리
@@ -119,7 +119,7 @@ def normalize_category(content_type: str, category: Optional[str]) -> Optional[s
     - 트림 처리
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
         category: 정규화할 카테고리 값
     
     Returns:
@@ -146,7 +146,7 @@ def get_validation_error_message(content_type: str, category: str) -> str:
     카테고리 검증 실패 시 에러 메시지 생성
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
         category: 실패한 카테고리 값
     
     Returns:
@@ -162,7 +162,7 @@ def add_category(content_type: str, category: str) -> bool:
     새 카테고리 추가 (런타임 중 추가 - 실제로는 설정 파일 수정 필요)
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
         category: 추가할 카테고리
     
     Returns:
@@ -184,7 +184,7 @@ def remove_category(content_type: str, category: str) -> bool:
     카테고리 제거 (런타임 중 제거 - 실제로는 설정 파일 수정 필요)
     
     Args:
-        content_type: 'news', 'gallery', 'board'
+        content_type: 'news', 'gallery'
         category: 제거할 카테고리
     
     Returns:

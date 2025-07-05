@@ -1,9 +1,9 @@
 """
-News API - 실용적인 업계 표준 패턴
-- 클린 아키텍처
-- 리포지토리 패턴  
-- 서비스 레이어
+News API - Standardized Lambda Handler
+표준화된 뉴스 API 핸들러
+- 베이스 핸들러 사용
 - 표준화된 에러 처리
+- 성능 모니터링
 """
 import json
 from typing import Dict, Any, Optional
@@ -15,8 +15,14 @@ from common.response import (
     create_response, create_error_response, create_success_response,
     create_not_found_response, create_created_response, DecimalEncoder
 )
-from common.logging import get_logger, log_api_call
+from common.logging import get_logger, log_api_call, performance_monitor
 from common.config import AppConfig
+from common.base_handler import BaseAPIHandler
+from common.error_handlers import (
+    ValidationError, NotFoundError, validate_required_fields, 
+    validate_field_length, validate_pagination_params
+)
+from common.auth_decorators import admin_required
 
 logger = get_logger(__name__)
 

@@ -88,3 +88,274 @@ config
 tmp/
 temp/
 *.tmp
+
+# Test Coverage Reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+.tox/
+
+# JWT Secrets and Tokens
+*.jwt
+jwt_secret.txt
+auth_secrets/
+
+# Sample and Example Files (keep templates but ignore local copies)
+env.json
+config.local.*
+*.sample.local
+
+# Documentation Build
+docs/_build/
+site/
+
+# Local Database Files
+*.db
+*.sqlite
+*.sqlite3
+shared-local-instance.db
+
+# Performance and Profiling
+.prof
+*.prof
+
+# API Test Results
+test_results/
+api_test_*.json
+api_test_*.log
+
+# Backup Files
+*.bak
+*.backup
+*~.backup
+
+# Lambda Layer Dependencies (can be rebuilt)
+layers/*/python/lib/
+layers/*/nodejs/node_modules/
+
+# SAM Build Artifacts
+.aws-sam/
+samconfig.toml.bak
+
+# Local Environment Overrides
+env.json.local
+env.json.dev
+env.json.test
+
+# Editor and IDE Specific
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
+*.sublime-workspace
+*.sublime-project
+
+# Package Manager
+pip-log.txt
+pip-delete-this-directory.txt
+.pip
+
+# Runtime Logs
+lambda_logs/
+sam_logs/
+
+# Local Testing
+test_output/
+.nyc_output/
+
+# CDK (if used in future)
+cdk.out/
+
+# ===========================================
+# PROJECT SPECIFIC GITIGNORE
+# ===========================================
+
+# Blog System Specific Files
+FINAL_PROJECT_STATUS.md.backup
+COMPLETION_*.md.backup
+comprehensive_api_test_results.json
+
+# API Test Scripts Results  
+api_test_results/
+test_screenshots/
+postman_tests/
+
+# Legacy and Backup Files (project cleanup remnants)
+*_old.py
+*_new.py
+*_backup.py
+*.py.backup
+conftest_old.py
+conftest_new.py
+
+# Local Development Configurations
+env.json.personal
+config.personal.json
+local_settings.py
+
+# SAM Local Specific
+.aws-sam/
+samconfig.toml.backup
+
+# DynamoDB Local Data
+dynamodb_local_db/
+shared-local-instance.db
+
+# Lambda Function Packages
+*.zip
+deployment-packages/
+
+# Performance Testing
+load_test_results/
+performance_logs/
+
+# Security Files
+secrets/
+private_keys/
+certificates/
+*.pem
+*.key
+*.crt
+
+# Temporary API Documentation
+api_docs_temp/
+swagger_temp/
+
+# MacOS Specific (additional)
+.com.apple.timemachine.donotpresent
+.LSOverride
+Icon
+
+# Windows Specific (if team uses)
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux Specific (if team uses)
+*~
+.nfs*
+
+# ===========================================
+# IMPORTANT: Files to ALWAYS TRACK
+# ===========================================
+# Uncomment if you want to force track certain files:
+# !env.json.sample
+# !config.json.template
+# !README.md
+# !docker-compose.yml
+# !template.yaml
+
+# ===========================================
+# BLOG SYSTEM PROJECT SPECIFIC
+# ===========================================
+
+# Documentation Files (keep only essential ones)
+*_COMPLETION.md
+*_COMPLETION_*.md
+COMPLETION_*.md
+REFACTORING_*.md
+STATUS_*.md
+FINAL_*.md.backup
+PROJECT_*.md.backup
+
+# Test Scripts Results
+comprehensive_api_test_results.txt
+final_api_test_results.txt
+quick_test_results.txt
+
+# Environment Files (keep template, ignore actual configs)
+env.json
+env.json.local
+env.json.dev
+env.json.test
+env.json.prod
+config.local.json
+samconfig.toml.local
+
+# AWS SAM Build Artifacts
+.aws-sam/
+samconfig.toml.backup
+
+# Lambda Deployment Packages
+deployment.zip
+layer.zip
+functions.zip
+
+# Local Development
+blog-table-local/
+dynamodb-local-data/
+
+# Test Coverage and Reports
+.coverage
+.coverage.*
+htmlcov/
+test-results/
+pytest_cache/
+.pytest_cache/
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+sam_logs/
+lambda_logs/
+
+# Python Runtime
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Package Managers
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Security and Secrets
+secrets.json
+private.json
+*.pem
+*.key
+*.crt
+auth_secrets/
