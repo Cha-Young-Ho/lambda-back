@@ -73,105 +73,20 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /auth/login
             Method: OPTIONS
-  # 게시판 CRUD 함수
-  BoardFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: "BlogBoard"
-      Handler: app.lambda_handler
-      CodeUri: ./board
-      Timeout: 30
-      MemorySize: 256
-      Layers:
-        - !Ref CommonLayer
-      Environment:
-        Variables:
-          TABLE_NAME: "blog-table"
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:blog/config-*"
-            - Effect: Allow
-              Action:
-                - dynamodb:GetItem
-                - dynamodb:PutItem
-                - dynamodb:UpdateItem
-                - dynamodb:DeleteItem
-                - dynamodb:Query
-                - dynamodb:Scan
-              Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table"
-      Events:
-        # 게시글 목록 조회 (공개)
-        ListBoardApi:
+        # 토큰 검증 엔드포인트 추가
+        ValidateTokenApi:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /board
-            Method: GET
-        # 최근 게시글 5개 조회 (공개)
-        RecentBoardApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /board/recent
-            Method: GET
-        # 게시글 상세 조회 (공개)
-        GetBoardApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /board/{boardId}
-            Method: GET
-        # 게시글 생성 (관리자 전용)
-        CreateBoardApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /board
+            Path: /auth/validate
             Method: POST
-        # 게시글 수정 (관리자 전용)
-        UpdateBoardApi:
+        ValidateTokenOptionsApi:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /board/{boardId}
-            Method: PUT
-        # 게시글 삭제 (관리자 전용)
-        DeleteBoardApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /board/{boardId}
-            Method: DELETE
-        # 이미지 업로드 (관리자 전용)
-        UploadImageApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /board/upload
-            Method: POST
-        # CORS 옵션
-        BoardOptionsApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /board
+            Path: /auth/validate
             Method: OPTIONS
-        BoardItemOptionsApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /board/{boardId}
-            Method: OPTIONS
-        UploadOptionsApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /board/upload
-            Method: OPTIONS
+
   # 뉴스 CRUD 함수
   NewsFunction:
     Type: AWS::Serverless::Function
@@ -202,6 +117,13 @@ Resources:
                 - dynamodb:Query
                 - dynamodb:Scan
               Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table"
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:DeleteObject
+                - s3:GeneratePresignedUrl
+              Resource: !Sub "arn:aws:s3:::your-bucket-name/*"
       Events:
         # 뉴스 목록 조회 (공개)
         ListNewsApi:
@@ -209,6 +131,13 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /news
+            Method: GET
+        # 최근 뉴스 조회 (공개)
+        RecentNewsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news/recent
             Method: GET
         # 뉴스 상세 조회 (공개)
         GetNewsApi:
@@ -223,6 +152,13 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /news
+            Method: POST
+        # 파일 업로드 URL 생성 (관리자 전용)
+        NewsUploadUrlApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news/upload-url
             Method: POST
         # 뉴스 수정 (관리자 전용)
         UpdateNewsApi:
@@ -244,6 +180,12 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /news
+            Method: OPTIONS
+        NewsUploadUrlOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /news/upload-url
             Method: OPTIONS
         NewsItemOptionsApi:
           Type: Api
@@ -282,6 +224,13 @@ Resources:
                 - dynamodb:Query
                 - dynamodb:Scan
               Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/blog-table"
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+                - s3:DeleteObject
+                - s3:GeneratePresignedUrl
+              Resource: !Sub "arn:aws:s3:::your-bucket-name/*"
       Events:
         # 갤러리 목록 조회 (공개)
         ListGalleryApi:
@@ -289,6 +238,13 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /gallery
+            Method: GET
+        # 최근 갤러리 조회 (공개)
+        RecentGalleryApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery/recent
             Method: GET
         # 갤러리 상세 조회 (공개)
         GetGalleryApi:
@@ -303,6 +259,13 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /gallery
+            Method: POST
+        # 파일 업로드 URL 생성 (관리자 전용)
+        GalleryUploadUrlApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery/upload-url
             Method: POST
         # 갤러리 수정 (관리자 전용)
         UpdateGalleryApi:
@@ -324,6 +287,12 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /gallery
+            Method: OPTIONS
+        GalleryUploadUrlOptionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /gallery/upload-url
             Method: OPTIONS
         GalleryItemOptionsApi:
           Type: Api
