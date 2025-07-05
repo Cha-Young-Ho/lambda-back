@@ -112,7 +112,14 @@ start_test_services() {
     
     # Start test services
     cd tests
-    docker-compose -f docker-compose.test.yml up -d
+    # Try docker-compose first, fallback to docker compose
+    if command -v docker-compose >/dev/null 2>&1; then
+        echo "Using docker-compose"
+        docker-compose -f docker-compose.test.yml up -d
+    else
+        echo "Using docker compose"
+        docker compose -f docker-compose.test.yml up -d
+    fi
     cd ..
     
     # Wait for services to be ready
@@ -141,7 +148,11 @@ stop_test_services() {
     print_status "Stopping test services..."
     if [ -f tests/docker-compose.test.yml ]; then
         cd tests
-        docker-compose -f docker-compose.test.yml down
+        if command -v docker-compose >/dev/null 2>&1; then
+            docker-compose -f docker-compose.test.yml down
+        else
+            docker compose -f docker-compose.test.yml down
+        fi
         cd ..
     fi
 }

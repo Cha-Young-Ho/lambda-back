@@ -26,11 +26,30 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-test.txt
         
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+        
     - name: Start test services
       run: |
         cd tests
-        docker-compose -f docker-compose.test.yml up -d
+        # Try docker compose first, fallback to docker-compose
+        if command -v docker-compose >/dev/null 2>&1; then
+          echo "Using docker-compose"
+          docker-compose -f docker-compose.test.yml up -d
+        else
+          echo "Using docker compose"
+          docker compose -f docker-compose.test.yml up -d
+        fi
         sleep 15  # Wait for services to be ready
+        
+    - name: Check test services
+      run: |
+        cd tests
+        if command -v docker-compose >/dev/null 2>&1; then
+          docker-compose -f docker-compose.test.yml ps
+        else
+          docker compose -f docker-compose.test.yml ps
+        fi
         
     - name: Run unit tests
       run: |
@@ -41,6 +60,23 @@ jobs:
       run: |
         export PYTHONPATH="${PYTHONPATH}:$(pwd)/layers/common-layer/python"
         ./run_tests.sh --integration
+        
+    - name: Collect test logs on failure
+      if: failure()
+      run: |
+        echo "=== Docker Compose Logs ==="
+        cd tests
+        if command -v docker-compose >/dev/null 2>&1; then
+          docker-compose -f docker-compose.test.yml logs
+        else
+          docker compose -f docker-compose.test.yml logs
+        fi
+        echo "=== Container Status ==="
+        docker ps -a
+        echo "=== System Info ==="
+        docker version
+        python --version
+        pip list
         
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
@@ -53,7 +89,11 @@ jobs:
       if: always()
       run: |
         cd tests
-        docker-compose -f docker-compose.test.yml down
+        if command -v docker-compose >/dev/null 2>&1; then
+          docker-compose -f docker-compose.test.yml down
+        else
+          docker compose -f docker-compose.test.yml down
+        fi
 
   deploy:
     needs: test

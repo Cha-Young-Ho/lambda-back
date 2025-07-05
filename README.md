@@ -31,7 +31,7 @@ cp env.json.template env.json
 
 # 3. DynamoDB Local 시작
 cd local-setup
-docker-compose up -d
+docker compose up -d
 
 # 4. 샘플 데이터 삽입
 python setup_local_table.py
@@ -186,7 +186,7 @@ make clean          # 데이터 초기화
 ### 🛠️ 수동 설정 (고급 사용자)
 ```bash
 # 1. DynamoDB Local 시작
-cd local-setup && docker-compose up -d
+cd local-setup && docker compose up -d
 
 # 2. 테이블 생성
 python local-setup/setup_local_table.py

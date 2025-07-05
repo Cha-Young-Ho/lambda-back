@@ -42,7 +42,7 @@ make clean          # 데이터 초기화
 
 ```bash
 # 1. DynamoDB Local 시작
-docker-compose up -d
+docker compose up -d
 
 # 2. Python 가상환경 설정
 cd .. && python3 -m venv venv && source venv/bin/activate

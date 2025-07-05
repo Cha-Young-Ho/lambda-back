@@ -227,7 +227,7 @@ fetch('/board', {
 ### 로컬 테스트
 ```bash
 # DynamoDB Local 시작
-cd local-setup && docker-compose up -d
+cd local-setup && docker compose up -d
 
 # 테이블 생성
 python setup_local_table.py

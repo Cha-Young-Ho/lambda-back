@@ -81,7 +81,7 @@
 ### 1. 로컬 환경 시작
 ```bash
 # DynamoDB Local 시작
-cd local-setup && docker-compose up -d
+cd local-setup && docker compose up -d
 
 # 샘플 데이터 삽입
 python setup_local_table.py
