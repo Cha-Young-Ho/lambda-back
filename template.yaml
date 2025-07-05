@@ -308,10 +308,6 @@ Outputs:
     Description: "Auth Lambda Function Name"
     Value: !Ref AuthFunction
 
-  BoardFunctionName:
-    Description: "Board Lambda Function Name"
-    Value: !Ref BoardFunction
-
   NewsFunctionName:
     Description: "News Lambda Function Name"
     Value: !Ref NewsFunction
@@ -333,10 +329,6 @@ Outputs:
   AuthApiEndpoint:
     Description: "Auth API endpoint"
     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth/login"
-
-  BoardApiEndpoint:
-    Description: "Board API endpoint"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/board"
 
   NewsApiEndpoint:
     Description: "News API endpoint"
