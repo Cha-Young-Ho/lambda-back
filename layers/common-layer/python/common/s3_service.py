@@ -20,8 +20,8 @@ class S3Service:
     
     def __init__(self, app_config: AppConfig):
         self.config = app_config
-        self.bucket_name = app_config.get_config_value('s3_bucket_name', 'your-default-bucket')
-        
+        # 버킷명 조회 방식 수정: 's3.bucket_name' 경로로 조회
+        self.bucket_name = app_config.get_config_value('s3.bucket_name', 'your-default-bucket')
         # S3 클라이언트 초기화
         if app_config.stage == 'local':
             # 로컬 개발 환경

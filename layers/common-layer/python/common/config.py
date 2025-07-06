@@ -48,10 +48,10 @@ class AppConfig:
                             'table_name': local_config.get('table_name', 'blog-table'),
                             'endpoint_url': local_config.get('dynamodb_endpoint', 'http://host.docker.internal:8000')
                         },
-                        's3': {
+                        's3': (local_config['s3'] if isinstance(local_config.get('s3'), dict) else {
                             'bucket_name': local_config.get('s3_bucket_name', 'blog-uploads'),
                             'region': local_config.get('s3_region', 'ap-northeast-2')
-                        }
+                        })
                     }
             except Exception as e:
                 print(f"Error reading env.json: {str(e)}")
@@ -83,9 +83,13 @@ class AppConfig:
                 }
             
             if 's3' not in secret:
+                # s3가 없으면 최상위에 s3_bucket_name, s3_region이 있는지 확인 후, 없으면 기본값 사용
+                s3_dict = secret.get('s3', {})
+                bucket_name = s3_dict.get('bucket_name') or secret.get('s3_bucket_name', 'blog-uploads')
+                region = s3_dict.get('region') or secret.get('s3_region', 'ap-northeast-2')
                 secret['s3'] = {
-                    'bucket_name': secret.get('s3_bucket_name', 'blog-uploads'),
-                    'region': secret.get('s3_region', 'ap-northeast-2')
+                    'bucket_name': bucket_name,
+                    'region': region
                 }
             
             return secret
