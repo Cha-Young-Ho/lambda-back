@@ -156,6 +156,16 @@ class AuthAPIHandler:
         else:
             data = body
         
+        # 요청 값 로깅 (비밀번호 제외)
+        logger.info(f"Login attempt: username={data.get('username')}")
+        
+        # 시크릿 키 목록 로깅
+        try:
+            secret_dict = self.service.app_config.config
+            logger.info(f"Loaded secret keys: {list(secret_dict.keys())}")
+        except Exception as e:
+            logger.warning(f"Secret keys logging failed: {e}")
+        
         # 필수 필드 검증
         validate_required_fields(data, ['username', 'password'])
         
