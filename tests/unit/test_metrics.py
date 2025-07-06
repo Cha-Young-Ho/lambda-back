@@ -46,10 +46,15 @@ class TestPerformanceMonitor:
     @patch('common.metrics.time.time')
     def test_end_request(self, mock_time):
         """요청 종료 기록 테스트"""
-        mock_time.side_effect = [1234567890.0, 1234567892.5]  # 2.5초 경과
+        # 첫 번째 호출: start_request에서 사용
+        # 두 번째 호출: end_request에서 사용
+        mock_time.return_value = 1234567890.0
         
         monitor = PerformanceMonitor()
         monitor.start_request("req-123", "get_news")
+        
+        # end_request 호출 전에 시간 변경
+        mock_time.return_value = 1234567892.5  # 2.5초 후
         monitor.end_request("req-123", 200)
         
         metric = monitor.metrics["req-123"]
