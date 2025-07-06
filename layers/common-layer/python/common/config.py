@@ -92,6 +92,9 @@ class AppConfig:
                     'region': region
                 }
             
+            # Secrets Manager에서 불러온 전체 시크릿 값 로깅
+            print(f"[AppConfig] Loaded secret from Secrets Manager: {json.dumps(secret, ensure_ascii=False)}")
+            
             return secret
             
         except Exception as e:
