@@ -16,6 +16,7 @@ Globals:
     Environment:
       Variables:
         VERSION: !Ref Version
+        STAGE: prod
 
 Resources:
   # Lambda Layer for common utilities
