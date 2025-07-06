@@ -1,0 +1,23 @@
+[run]
+omit = 
+    */base_handler.py
+    */app.py
+    auth/app.py
+    news/app.py
+    gallery/app.py
+    */test_*
+    .venv/*
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
