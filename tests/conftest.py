@@ -52,6 +52,34 @@ def mock_dynamodb_table():
         yield table
 
 @pytest.fixture
+def dynamodb_table():
+    """Create a real DynamoDB table for integration testing (alias for mock_dynamodb_table)"""
+    with mock_dynamodb():
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+        
+        table = dynamodb.create_table(
+            TableName='blog-table-test',
+            KeySchema=[
+                {
+                    'AttributeName': 'id',
+                    'KeyType': 'HASH'
+                }
+            ],
+            AttributeDefinitions=[
+                {
+                    'AttributeName': 'id',
+                    'AttributeType': 'S'
+                }
+            ],
+            BillingMode='PAY_PER_REQUEST'
+        )
+        
+        # Wait for table to be created
+        table.wait_until_exists()
+        
+        yield table
+
+@pytest.fixture
 def mock_app_config():
     """Mock application configuration"""
     return {
@@ -93,6 +121,26 @@ def sample_gallery_item():
         'short_description': 'Test gallery description',
         'date': '2025-07-06'
     }
+
+@pytest.fixture
+def sample_news_data():
+    """Sample news data for testing (without id)"""
+    return {
+        'title': 'Test News Item',
+        'content': 'This is test news content for integration testing.',
+        'category': '센터소식',
+        'status': 'published',
+        'image_url': 'https://example.com/test-news.jpg',
+        'short_description': 'Test news description for integration testing',
+        'date': '2025-07-06'
+    }
+
+@pytest.fixture
+def admin_token():
+    """Mock admin JWT token for testing"""
+    # This is a mock token for testing purposes
+    # In real tests, you might want to generate a proper JWT
+    return 'mock_admin_token_for_testing'
 
 # Add any additional test utilities here
 def pytest_configure(config):

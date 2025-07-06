@@ -8,6 +8,7 @@ omit =
     */test_*
     .venv/*
     */__pycache__/*
+    tests/integration/*
 
 [report]
 exclude_lines =
