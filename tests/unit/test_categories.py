@@ -4,11 +4,10 @@ Unit tests for categories module
 import pytest
 from unittest.mock import patch
 
-# Import the module under test
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../layers/common-layer/python'))
+# Mark all tests in this file as unit tests
+pytestmark = pytest.mark.unit
 
+# Import the module under test
 from common.categories import (
     ContentType,
     get_allowed_categories,
@@ -34,6 +33,7 @@ class TestContentType:
         assert ContentType.GALLERY.value == "gallery"
 
 
+@pytest.mark.unit
 class TestGetAllowedCategories:
     """Test get_allowed_categories function"""
     

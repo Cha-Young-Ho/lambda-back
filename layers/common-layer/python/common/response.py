@@ -87,8 +87,8 @@ def create_error_response(status_code: int, message: str, details: Optional[Dict
         error_body['error']['details'] = details
     
     # 타임스탬프 추가
-    from datetime import datetime
-    error_body['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+    from datetime import datetime, timezone
+    error_body['timestamp'] = datetime.now(timezone.utc).isoformat() + 'Z'
     
     return create_response(status_code, error_body)
 
@@ -118,8 +118,8 @@ def create_success_response(data: Any, message: Optional[str] = None,
         response_body['metadata'] = metadata
     
     # 타임스탬프 추가
-    from datetime import datetime
-    response_body['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+    from datetime import datetime, timezone
+    response_body['timestamp'] = datetime.now(timezone.utc).isoformat() + 'Z'
     
     return create_response(200, response_body)
 
@@ -237,8 +237,8 @@ def create_created_response(data: Any, message: str = "Resource created successf
         'data': data
     }
     
-    from datetime import datetime
-    response_body['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+    from datetime import datetime, timezone
+    response_body['timestamp'] = datetime.now(timezone.utc).isoformat() + 'Z'
     
     return create_response(201, response_body)
 

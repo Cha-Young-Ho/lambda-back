@@ -3,7 +3,7 @@ Health check and utility endpoints
 시스템 상태 확인 및 유틸리티 엔드포인트
 """
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 from .config import AppConfig
@@ -18,7 +18,7 @@ def get_system_health(app_config: AppConfig) -> Dict[str, Any]:
     """시스템 전체 상태 확인"""
     health_status = {
         'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat() + 'Z',
+        'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
         'components': {}
     }
     
@@ -126,12 +126,12 @@ def get_metrics_summary() -> Dict[str, Any]:
         
         return {
             'cache_metrics': cache_metrics.get_summary(),
-            'collection_time': datetime.utcnow().isoformat() + 'Z'
+            'collection_time': datetime.now(timezone.utc).isoformat() + 'Z'
         }
     except ImportError:
         return {
             'error': 'Metrics module not available',
-            'collection_time': datetime.utcnow().isoformat() + 'Z'
+            'collection_time': datetime.now(timezone.utc).isoformat() + 'Z'
         }
 
 def create_health_check_handler(app_config: AppConfig):

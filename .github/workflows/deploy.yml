@@ -53,12 +53,22 @@ jobs:
         
     - name: Run unit tests
       run: |
-        export PYTHONPATH="${PYTHONPATH}:$(pwd)/layers/common-layer/python"
-        ./run_tests.sh --unit --coverage
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)/layers/common-layer/python:$(pwd)"
+        chmod +x ./run_tests.sh
+        # Run tests directly with pytest to avoid script issues
+        python3 -m pytest tests/unit/ -m unit --cov=layers/common-layer/python/common --cov=auth --cov=news --cov=gallery --cov-report=html --cov-report=term-missing --tb=short --no-header -q --cov-fail-under=75
+        
+    - name: Check test coverage
+      run: |
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)/layers/common-layer/python:$(pwd)"
+        echo "📊 Test Coverage Report:"
+        python3 -m pytest tests/unit/ -m unit --cov=layers/common-layer/python/common --cov-report=term --cov-report=xml:coverage.xml --quiet --tb=no
+        echo "✅ Coverage check completed - minimum 75% required"
         
     - name: Run integration tests
       run: |
-        export PYTHONPATH="${PYTHONPATH}:$(pwd)/layers/common-layer/python"
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)/layers/common-layer/python:$(pwd)"
+        python3 -m pytest tests/integration/ -m integration --tb=short -v
         ./run_tests.sh --integration
         
     - name: Collect test logs on failure

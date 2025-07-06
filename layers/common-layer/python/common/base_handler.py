@@ -5,7 +5,7 @@ Base API handler for standardized Lambda function structure
 import json
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 
 from common.config import AppConfig
 from common.logging import get_logger, log_api_call, PerformanceTimer
@@ -49,7 +49,7 @@ class BaseAPIHandler(ABC):
                     self.cold_start = False
                 
                 # API 호출 로깅
-                start_time = datetime.utcnow()
+                start_time = datetime.now(timezone.utc)
                 log_api_call(logger, event, context)
                 
                 # HTTP 메서드와 경로 추출
@@ -60,7 +60,7 @@ class BaseAPIHandler(ABC):
                 response = self._route_request(event, context, method, path)
                 
                 # 성공 로깅
-                duration = (datetime.utcnow() - start_time).total_seconds()
+                duration = (datetime.now(timezone.utc) - start_time).total_seconds()
                 logger.info(f"Request completed successfully", 
                            extra={
                                'request_id': request_id,

@@ -6,7 +6,7 @@ Auth API - Standardized Lambda Handler
 - 표준화된 에러 처리
 """
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
 from common.config import AppConfig
@@ -196,7 +196,7 @@ class AuthAPIHandler:
         """테스트 엔드포인트"""
         return create_success_response({
             'message': 'Auth API is working',
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
             'service': 'auth'
         })
 

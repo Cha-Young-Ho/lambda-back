@@ -6,7 +6,7 @@ S3 File Management Service
 """
 import boto3
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, List
 from botocore.exceptions import ClientError
 

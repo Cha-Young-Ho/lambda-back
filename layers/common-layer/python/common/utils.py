@@ -3,7 +3,7 @@
 """
 import uuid
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 
@@ -14,7 +14,7 @@ def generate_uuid() -> str:
 
 def get_current_timestamp() -> str:
     """현재 ISO 타임스탬프 반환"""
-    return datetime.utcnow().isoformat() + 'Z'
+    return datetime.now(timezone.utc).isoformat() + 'Z'
 
 
 def validate_email(email: str) -> bool:

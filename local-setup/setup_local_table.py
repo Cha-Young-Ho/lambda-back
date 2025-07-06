@@ -6,7 +6,7 @@
 
 import boto3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from botocore.exceptions import ClientError
 
 def create_local_table():

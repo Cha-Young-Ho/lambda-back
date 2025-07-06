@@ -3,7 +3,7 @@ Performance monitoring and metrics utilities
 성능 모니터링 및 메트릭 수집을 위한 유틸리티
 """
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from contextlib import contextmanager
 
@@ -61,7 +61,7 @@ class PerformanceMonitor:
             self.metrics[request_id]['errors'].append({
                 'type': type(error).__name__,
                 'message': str(error),
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             })
     
     def _log_performance_metrics(self, request_id: str):
@@ -121,7 +121,7 @@ def log_cold_start():
     """Lambda 콜드 스타트 로깅"""
     logger.info("Lambda cold start detected", extra_fields={
         'event_type': 'cold_start',
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(timezone.utc).isoformat()
     })
 
 def log_memory_usage():

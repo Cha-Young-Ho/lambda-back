@@ -4,7 +4,7 @@ Repository pattern for DynamoDB operations
 """
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 from typing import Dict, List, Optional, Any, Union
 from boto3.dynamodb.conditions import Key, Attr
 
@@ -40,12 +40,12 @@ class BaseRepository(ABC):
         Returns:
             생성된 아이템의 ID
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         if not item_id:
             item_id = str(uuid.uuid4())
         
-        current_time = datetime.utcnow().isoformat() + 'Z'
+        current_time = datetime.now(timezone.utc).isoformat() + 'Z'
         
         # 기본 필드 설정
         item = {
@@ -64,7 +64,7 @@ class BaseRepository(ABC):
             self.table.put_item(Item=item)
             
             # 로깅
-            duration = (datetime.utcnow() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             log_database_operation(
                 logger, 'CREATE', self.dynamodb_config['table_name'], 
                 {'id': item_id}, duration
@@ -87,7 +87,7 @@ class BaseRepository(ABC):
         Returns:
             아이템 데이터 또는 None
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         try:
             response = self.table.get_item(Key={'id': item_id})
@@ -104,7 +104,7 @@ class BaseRepository(ABC):
             # 조회수 증가 제거됨
             
             # 로깅
-            duration = (datetime.utcnow() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             log_database_operation(
                 logger, 'GET', self.dynamodb_config['table_name'], 
                 {'id': item_id}, duration
@@ -127,7 +127,7 @@ class BaseRepository(ABC):
         Returns:
             성공 여부
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         try:
             # 기존 아이템 존재 확인
@@ -137,7 +137,7 @@ class BaseRepository(ABC):
             
             # 업데이트 표현식 구성
             update_expression = 'SET updated_at = :updated_at'
-            expression_values = {':updated_at': datetime.utcnow().isoformat() + 'Z'}
+            expression_values = {':updated_at': datetime.now(timezone.utc).isoformat() + 'Z'}
             
             # 업데이트할 필드들 추가
             updatable_fields = self._get_updatable_fields()
@@ -156,7 +156,7 @@ class BaseRepository(ABC):
             )
             
             # 로깅
-            duration = (datetime.utcnow() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             log_database_operation(
                 logger, 'UPDATE', self.dynamodb_config['table_name'], 
                 {'id': item_id}, duration
@@ -178,7 +178,7 @@ class BaseRepository(ABC):
         Returns:
             성공 여부
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         try:
             # 존재 확인
@@ -189,7 +189,7 @@ class BaseRepository(ABC):
             self.table.delete_item(Key={'id': item_id})
             
             # 로깅
-            duration = (datetime.utcnow() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             log_database_operation(
                 logger, 'DELETE', self.dynamodb_config['table_name'], 
                 {'id': item_id}, duration
@@ -214,7 +214,7 @@ class BaseRepository(ABC):
         Returns:
             {items: List, next_key: str, total: int} 형태
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         try:
             # 필터 조건 구성
@@ -240,7 +240,7 @@ class BaseRepository(ABC):
             items.sort(key=lambda x: x.get('created_at', ''), reverse=True)
             
             # 로깅
-            duration = (datetime.utcnow() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             log_database_operation(
                 logger, 'SCAN', self.dynamodb_config['table_name'], 
                 {'content_type': self.content_type, 'limit': limit}, duration

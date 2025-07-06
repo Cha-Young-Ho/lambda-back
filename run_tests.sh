@@ -127,7 +127,7 @@ start_test_services() {
     sleep 10
     
     # Check DynamoDB Local
-    if curl -s http://localhost:8000 > /dev/null; then
+    if curl -s http://localhost:8001 > /dev/null; then
         print_success "DynamoDB Local is ready"
     else
         print_warning "DynamoDB Local may not be ready"
@@ -163,7 +163,7 @@ build_pytest_cmd() {
     
     # Add coverage if requested
     if [ "$COVERAGE" = "true" ]; then
-        cmd="$cmd --cov=common --cov=auth --cov=news --cov=gallery --cov-report=html --cov-report=term-missing"
+        cmd="$cmd --cov=layers/common-layer/python/common --cov=auth --cov=news --cov=gallery --cov-report=html --cov-report=term-missing"
     fi
     
     # Add parallel execution if requested
@@ -178,10 +178,10 @@ build_pytest_cmd() {
     # Add test markers based on type
     case $TEST_TYPE in
         "unit")
-            cmd="$cmd -m unit tests/unit/"
+            cmd="$cmd tests/unit/ -m unit"
             ;;
         "integration")
-            cmd="$cmd -m integration tests/integration/"
+            cmd="$cmd tests/integration/ -m integration"
             ;;
         "all")
             cmd="$cmd tests/"

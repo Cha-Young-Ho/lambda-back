@@ -5,7 +5,7 @@ JWT 토큰 생성 및 검증 서비스 (PyJWT 사용)
 import jwt
 import json
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 
 from .logging import get_logger
@@ -35,8 +35,8 @@ class JWTService:
         """JWT 토큰 생성 (간단한 구현)"""
         try:
             # 토큰 만료 시간 추가
-            payload['exp'] = (datetime.utcnow() + timedelta(hours=self.expiration_hours)).isoformat()
-            payload['iat'] = datetime.utcnow().isoformat()
+            payload['exp'] = (datetime.now(timezone.utc) + timedelta(hours=self.expiration_hours)).isoformat()
+            payload['iat'] = datetime.now(timezone.utc).isoformat()
             
             # Base64 인코딩으로 간단한 토큰 생성
             token_data = json.dumps(payload)
@@ -61,7 +61,7 @@ class JWTService:
             
             # 만료 시간 확인
             exp_time = datetime.fromisoformat(payload['exp'])
-            if datetime.utcnow() > exp_time:
+            if datetime.now(timezone.utc) > exp_time:
                 raise AuthenticationError("Token expired")
             
             return payload
