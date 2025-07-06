@@ -8,6 +8,7 @@ Auth API - Standardized Lambda Handler
 import json
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
+import os
 
 from common.config import AppConfig
 from common.response import (
@@ -95,7 +96,8 @@ class AuthAPIHandler:
     """인증 API 핸들러"""
     
     def __init__(self):
-        self.app_config = AppConfig()
+        stage = os.environ.get('STAGE', 'local')
+        self.app_config = AppConfig(stage)
         self.service = AuthService(self.app_config)
         self.cold_start = True
     
