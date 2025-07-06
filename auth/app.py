@@ -135,16 +135,16 @@ class AuthAPIHandler:
             return handle_api_error(e, request_id)
     
     def _handle_options(self) -> Dict[str, Any]:
-        """CORS OPTIONS 요청 처리"""
-        return create_response(
-            {},
-            200,
-            {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            }
-        )
+        """CORS OPTIONS 요청 처리 (프록시 통합 안전 버전)"""
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization"
+            },
+            "body": "{}"
+        }
     
     def _handle_login(self, event: Dict[str, Any]) -> Dict[str, Any]:
         """로그인 처리"""
