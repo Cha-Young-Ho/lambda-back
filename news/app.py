@@ -6,6 +6,7 @@ News API - Standardized Lambda Handler
 - 성능 모니터링
 """
 import json
+import os
 from typing import Dict, Any, Optional
 
 from common.repositories import NewsRepository
@@ -265,8 +266,10 @@ def handle_recent_news(event, service: NewsService):
         })
         
     except Exception as e:
-        logger.error(f"Error in handle_recent_news: {str(e)}")
-        return create_error_response(500, "Failed to retrieve recent news")
+        logger.error(f"Error in handle_recent_news: {str(e)}", exc_info=True)
+        # 개발 환경에서는 더 구체적인 오류 메시지 제공
+        error_detail = str(e) if os.environ.get('STAGE') == 'dev' else "Failed to retrieve recent news"
+        return create_error_response(500, error_detail)
 
 def handle_get_news(event, service: NewsService):
     """뉴스 상세 조회 핸들러"""
